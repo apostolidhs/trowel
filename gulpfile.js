@@ -1,5 +1,6 @@
 var config = require("./gulp-config.js"),
     gulp = require("gulp"),
+    sequence = require('gulp-run-sequence'),
     concat = require("gulp-concat"),
     clean = require("gulp-clean"),
     ts = require("gulp-typescript"),
@@ -49,7 +50,10 @@ gulp.task("run-test", function (next) {
 });
 
 gulp.task("clean", ["clean-src", "clean-dist", "clean-test"]);
-gulp.task("build-js", ["clean-src", "compile-ts", "concat-js"]);
-gulp.task("test", ["clean-test", "compile-test-ts", "run-test"]);
-
+gulp.task("build-js", function(next){
+   sequence("clean-src", "compile-ts", "concat-js", next); 
+});
+gulp.task("test", function(next){
+   sequence("clean-test", "compile-test-ts", "run-test", next); 
+});
 gulp.task("default", ["build-js"]);

@@ -17,6 +17,7 @@ module.exports = {
 	test: {
 		conf: "test/karma-config.js",
 		src: "test/units/**/*.spec.ts",
+		samples: "test/samples/**/*.js",
 		jssrc: "test/units/**/*.spec.js",
 		dist: "test/units"
 	}

@@ -1,0 +1,28 @@
+{
+  "name": "trowel",
+  "description": "ECMAScript parsing utility",
+  "main": "dist/index.js",
+  "authors": [
+    "John Apostolidis"
+  ],
+  "license": "ISC",
+  "keywords": [
+    "lexer",
+    "parser",
+    "lex",
+    "syntax",
+    "ecmascript",
+    "javascript",
+    "ast"
+  ],
+  "homepage": "https://github.com/apostolidhs/trowel",
+  "moduleType": [],
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ]
+}

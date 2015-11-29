@@ -1,0 +1,38 @@
+{
+  "name": "trowel",
+  "version": "1.0.0",
+  "description": "ECMAScript parsing utility",
+  "main": "dist/index.js",
+  "scripts": {
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/apostolidhs/trowel.git"
+  },
+  "keywords": [
+    "lexer",
+    "parser",
+    "lex",
+    "syntax",
+    "ecmascript",
+    "javascript",
+    "ast"
+  ],
+  "author": "John Apostolidis",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/apostolidhs/trowel/issues"
+  },
+  "homepage": "https://github.com/apostolidhs/trowel#readme",
+  "devDependencies": {
+    "gulp": "^3.9.0",
+    "gulp-clean": "^0.3.1",
+    "gulp-concat": "^2.6.0",
+    "gulp-typescript": "^2.9.2",
+    "jasmine-core": "^2.3.4",
+    "karma": "^0.13.15",
+    "karma-chrome-launcher": "^0.2.1",
+    "karma-jasmine": "^0.3.6"
+  }
+}

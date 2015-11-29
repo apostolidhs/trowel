@@ -1,0 +1,17 @@
+# npm
+/node_modules
+
+# src js
+/src/**/*.js
+
+# dist
+/dist
+
+# bower
+/bower_components
+
+# typescript definitions
+/tsDefinitions
+
+# test js
+/test/units/**/*.js

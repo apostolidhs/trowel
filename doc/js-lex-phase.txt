@@ -1,0 +1,215 @@
+
+char: unicode
+
+c_tab: \u0009
+c_vt: \u000B
+c_ff: \u000C
+c_sp: \u0020
+c_nbsp: \u00A0
+c_bom: \uFEFF
+c_usp: c_bom
+c_zwnj: \u200C
+c_zwj: \u200D
+
+c_lf: \u000A
+c_cr: \u000D
+c_ls: \u2028
+c_ps: \u2029
+
+whiteSpace: c_tab
+	| c_vt
+	| c_ff
+	| c_sp
+	| c_nbsp
+	| c_bom
+	| c_usp
+	
+lineTerminator: c_lf
+	| c_cr
+	| c_ls
+	| c_ps
+
+lineTerminatorSeq: c_lf
+	| c_cr
+	| c_ls
+	| c_ps
+	| c_cr c_lf
+	
+comment: multiLineComment
+	| singleLineComment
+	
+multiLineComment: '/' '*' multiLineCommentChars '*' '/'
+multiLineCommentChars: multiLineNotAsteriskChar multiLineCommentChars
+	| '*' postAsteriskCommentChars
+	
+postAsteriskCommentChars: multiLineNotForwardSlashOrAsteriskChar
+	| multiLineCommentChars
+	| '*' postAsteriskCommentChars
+	
+multiLineNotAsteriskChar: [char^*]
+
+multiLineNotForwardSlashOrAsteriskChar: [char^*^/]
+
+singleLineComment: '/' '/' [char^\n]*
+
+
+
+
+identifier: identifierName //not reserved word
+
+unicodeLetter: char
+
+identifierName: identifierStart
+	| identifierName identifierPart
+	
+identifierStart:  '$' 
+	| '_' 
+	| unicodeLetter  
+	| \unicodeEscapeSequence
+	
+identifierPart: identifierStart
+	| unicodeCombiningMark
+	| unicodeDigit
+	| unicodeConnectorPunctuation
+	| c_zwnj
+	| c_zwj
+
+unicodeEscapeSequence: u HexDigit HexDigit HexDigit HexDigit
+
+literal: null
+	| ('true' | 'false')
+	| numericLit
+	| stringLit
+	| reqularExprLit
+	
+stringLit: '"' [char^"] '"'
+	| ''' [char^'] '''
+	
+reqularExprLit: / regularExprBody / RegularExprFlags
+
+// keywords
+break: 'break'
+do: 'do'
+instanceof: 'instanceof'
+typeof: 'typeof'
+case: 'case'
+else: 'else'
+new: 'new'
+var: 'var'
+catch: 'catch'
+finally: 'finally'
+return: 'return'
+void: 'void'
+continue: 'continue'
+for: 'for'
+switch: 'switch'
+while: 'while'
+debugger: 'debugger'
+function: 'function'
+this: 'this'
+with: 'with'
+default: 'default'
+if: 'if'
+throw: 'throw'
+delete: 'delete'
+in: 'in'
+try: 'try'
+
+class: 'class'
+enum: 'enum'
+extends: 'extends'
+super: 'super'
+const: 'const'
+export: 'export'
+import: 'import'
+
+implements: 'implements'
+let: 'let'
+private: 'private'
+public: 'public'
+interface: 'interface'
+package: 'package'
+protected: 'protected'
+static: 'static'
+yield: 'yield'
+
+c_lbrace: '{'
+c_rbrace: '}'
+c_lparenth: '('
+c_rparenth: ')'
+c_lbracket: '['
+c_rbracket: ']'
+c_dot: '.'
+c_semicolon: ';'
+c_comma: ','
+c_less: '<'
+c_more: '>'
+c_lesseq: '<='
+c_moreeq: '>='
+c_eq: '=='
+c_neq: '!='
+c_seq: '==='
+c_nseq: '!=='
+c_plus: '+'
+c_minus: '-'
+c_percent: '%'
+c_plusplus: '++'
+c_minmin: '--'
+c_lshift: '<<'
+c_rshift: '>>'
+c_rushift: '>>>'
+c_ampersand: '&'
+c_vertical: '|'
+c_caret: '^'
+c_excl: '!'
+c_tilde: '~'
+c_and: '&&'
+c_or: '||'
+c_quest: '?'
+c_colon: ':'
+c_assign: '='
+c_assignplus: '+='
+c_assignminus: '-='
+c_assignmulti: '*='
+c_assignpercent: '%='
+c_assignlshift: '<<='
+c_assignrshift: '>>='
+c_assignrushift: '>>>='
+c_assignampersand: '&='
+c_assignvertical: '|='
+c_assigncaret: '^='
+c_assignslash: '/='
+c_slash: '/'
+c_asterisk: '*'
+c_dollar: '$'
+c_dash: '-'
+c_backslash: '\'
+c_exp: 'e'
+c_bexp: 'E'
+
+null
+true
+false
+this
+
+decimalLit: decimalIntegerLit '.' decimalDigits expPart
+	| '.' decimalDigits expPart
+	| decimalIntegerLit expPart
+	
+decimalIntegerLit: 0
+	| nonZeroDigit decimalDigits
+	
+decimalDigits: decimalDigit*
+
+decimalDigit: (0-9)
+
+nonZeroDigit: (1-9)
+
+expPart: ('e' | 'E') ('+' | '-')? decimalDigits
+	
+hexintegerLit: ('0x' | '0X' | hexintegerLit) HexDigit
+
+HexDigit: (0-F)
+
+numericLit: decimalLit 
+	| hexintegerLit

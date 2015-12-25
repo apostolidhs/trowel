@@ -30,6 +30,7 @@
     ".gitattributes",
     ".gitignore",
     "bower.json",
+    ".bower.json",
     "gulp-config.js",
     "gulpfile.js",
     "package.json",

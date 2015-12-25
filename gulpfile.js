@@ -4,26 +4,58 @@ var config = require("./gulp-config.js"),
     concat = require("gulp-concat"),
     clean = require("gulp-clean"),
     ts = require("gulp-typescript"),
-    KarmaServer = require("karma").Server;
+    uglify = require("gulp-uglify"),
+    sourcemaps = require('gulp-sourcemaps'),
+    wrapJS = require("gulp-wrap-js"),
+    karmaServer = require("karma").Server,
+    fs = require("fs");
 
-gulp.task("compile-ts", function () {
+///////////////////////////////////////////
+// Javascript
+
+gulp.task("compile-concat-ts", function () {
     return gulp.src(config.ts.src)
-        .pipe(ts()).js
-        .pipe(gulp.dest(config.ts.dist));
+        .pipe(sourcemaps.init())
+        .pipe(ts({ module: 'amd' }))
+        .js
+        .pipe(concat(config.js.filename)) //just to rename
+        .pipe(wrapJS(fs.readFileSync(config.js.umdTemplate, "utf8")))
+        .pipe(sourcemaps.write('.'))
+        .pipe(gulp.dest('.'));
 });
+////////////Javascript///////////////////
 
-gulp.task("concat-js", function () {
+
+///////////////////////////////////////////
+// Release
+gulp.task("build-js-dist", function () {
     var files = []
-        .concat(config.vendors)
-        .concat(config.js.src);
-
+        .concat(config.js.filename)
+        .concat(config.js.mapname);
+        
     return gulp.src(files)
-        .pipe(concat(config.js.concat))
-        .pipe(gulp.dest(config.js.dist));
+        .pipe(gulp.dest(config.app.dist));
 });
+
+gulp.task("build-minify-js-dist", function () {
+    return gulp.src(config.js.filename)
+        .pipe(uglify())
+        .pipe(concat(config.app.minifyJsName)) //just to rename
+        .pipe(gulp.dest(config.app.dist));
+});
+
+gulp.task("build-dist", ["build-js-dist", "build-minify-js-dist"]);
+////////////Release///////////////////
+
+///////////////////////////////////////////
+// Cleaners
 
 gulp.task("clean-src", function (next) {
-    return gulp.src(config.js.src, { read: false })
+    var files = []
+        .concat(config.js.src)
+        .concat(config.js.map);
+    
+    return gulp.src(files, { read: false })
         .pipe(clean());
 });
 
@@ -33,8 +65,22 @@ gulp.task("clean-dist", function (next) {
 });
 
 gulp.task("clean-test", function (next) {
-    return gulp.src(config.test.jssrc, { read: false })
+    var files = []
+        .concat(config.test.jssrc)
+        .concat(config.test.jsUtilities);
+    
+    return gulp.src(files, { read: false })
         .pipe(clean());
+});
+/////////////Cleaners//////////////////
+
+///////////////////////////////////////////
+// Unit test
+
+gulp.task("compile-test-utilities-ts", function () {
+    return gulp.src(config.test.utilities)
+        .pipe(ts()).js
+        .pipe(gulp.dest(config.test.utilitiesDist));
 });
 
 gulp.task("compile-test-ts", function () {
@@ -44,16 +90,26 @@ gulp.task("compile-test-ts", function () {
 });
 
 gulp.task("run-test", function (next) {
-    new KarmaServer({
+    new karmaServer({
         configFile: __dirname + "/" + config.test.conf
     }, next).start();
 });
+/////////////Unit test//////////////////
+
+///////////////////////////////////////////
+// Complex tasks
 
 gulp.task("clean", ["clean-src", "clean-dist", "clean-test"]);
+
 gulp.task("build-js", function(next){
-   sequence("clean-src", "compile-ts", "concat-js", next); 
+   sequence("clean-src", "compile-concat-ts", next); 
 });
+
 gulp.task("test", function(next){
-   sequence("clean-test", "compile-test-ts", "run-test", next); 
+   sequence("clean-test", "compile-test-utilities-ts", "compile-test-ts", "run-test", next); 
 });
-gulp.task("default", ["build-js"]);
+
+gulp.task("default", function(next){
+   sequence("clean-dist", "build-js", "build-dist", "test", next); 
+});
+/////////////Complex tasks//////////////////

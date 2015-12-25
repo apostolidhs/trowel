@@ -1,23 +1,30 @@
 module.exports = {
 	ts: {
 		src: "src/**/*.ts",
-		dist: "src"
 	},
 	js: {
+		map: "src/**/*.js.map",
 		src: "src/**/*.js",
 		dist: "src",
-		concat: "trowel.js"
+		name: "trowel.js",
+		filename: "src/trowel.js",
+		mapname: "src/trowel.js.map",
+		umdTemplate: "src/umdWrap.tmpl"
 	},
 	vendors: [
-		"./bower_components/underscore/underscore.js"
+		"./bower_components/underscore/underscore.js",
 	],
 	app: {
-		dist: "dist"
+		dist: "dist",
+		minifyJsName: "trowel.min.js"
 	},
 	test: {
 		conf: "test/karma-config.js",
-		src: "test/units/**/*.spec.ts",
+		utilities: "test/utilities/**/*.ts",
+		jsUtilities: "test/utilities/**/*.js",
+		utilitiesDist: "test/utilities",
 		samples: "test/samples/**/*.js",
+		src: "test/units/**/*.spec.ts",
 		jssrc: "test/units/**/*.spec.js",
 		dist: "test/units"
 	}

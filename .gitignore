@@ -6,9 +6,6 @@
 /src/**/*.js.map
 /src/index.html
 
-# dist
-/dist
-
 # bower
 /bower_components
 

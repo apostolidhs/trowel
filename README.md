@@ -1,4 +1,4 @@
-**Trowel** is an under-construction Ecmascript5 interpreter written in Ecmascript5
+**Trowel** is an under-construction Ecmascript5 interpreter written in TypeScript
 
 ## Currently project cover
 

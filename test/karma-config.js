@@ -5,6 +5,7 @@ module.exports = function (karmaConfig) {
 	var files = []
 		.concat(config.vendors)
 		.concat(config.js.src)
+		.concat(config.test.jsUtilities)
 		.concat(config.test.jssrc)
 		.concat({
 			pattern: config.test.samples, include: false

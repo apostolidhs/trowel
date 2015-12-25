@@ -3,6 +3,8 @@
 
 # src js
 /src/**/*.js
+/src/**/*.js.map
+/src/index.html
 
 # dist
 /dist
@@ -15,3 +17,4 @@
 
 # test js
 /test/units/**/*.js
+/test/utilities/**/*.js

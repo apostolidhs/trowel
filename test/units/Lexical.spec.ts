@@ -359,7 +359,9 @@ describe('js source text read as tokens', function() {
 			"2e", "2.1e", "2.3e-", "2.3e-1a", "2.3e1a",
 			".1e", ".3e-", ".3e-1a", ".3e1a",
 			"233asd", "2asd",
-			"'\\u1'", "asd\\u01asd"
+			"'\\u1'", "asd\\u01asd",
+            "/*", "/* ", "/**", "/* *", "/*/", "/* /", " /* /*",
+            "'aasd", "'asdsad asdasd \""
 		].forEach(src => {
 			let token = trl.frontend.api.tokenize(src);
 			trl.test.Utilities.expectToEqual(token.exceptions && token.exceptions.length > 0, true, src);

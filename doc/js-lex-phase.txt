@@ -1,5 +1,5 @@
 
-char: unicode
+SourceCharacter: any unicode
 
 c_tab: \u0009
 c_vt: \u000B
@@ -46,46 +46,11 @@ postAsteriskCommentChars: multiLineNotForwardSlashOrAsteriskChar
 	| multiLineCommentChars
 	| '*' postAsteriskCommentChars
 	
-multiLineNotAsteriskChar: [char^*]
+multiLineNotAsteriskChar: [SourceCharacter^*]
 
-multiLineNotForwardSlashOrAsteriskChar: [char^*^/]
+multiLineNotForwardSlashOrAsteriskChar: [SourceCharacter^*^/]
 
 singleLineComment: '/' '/' [char^\n]*
-
-
-
-
-identifier: identifierName //not reserved word
-
-unicodeLetter: char
-
-identifierName: identifierStart
-	| identifierName identifierPart
-	
-identifierStart:  '$' 
-	| '_' 
-	| unicodeLetter  
-	| \unicodeEscapeSequence
-	
-identifierPart: identifierStart
-	| unicodeCombiningMark
-	| unicodeDigit
-	| unicodeConnectorPunctuation
-	| c_zwnj
-	| c_zwj
-
-unicodeEscapeSequence: u HexDigit HexDigit HexDigit HexDigit
-
-literal: null
-	| ('true' | 'false')
-	| numericLit
-	| stringLit
-	| reqularExprLit
-	
-stringLit: '"' [char^"] '"'
-	| ''' [char^'] '''
-	
-reqularExprLit: / regularExprBody / RegularExprFlags
 
 // keywords
 break: 'break'
@@ -147,6 +112,7 @@ c_more: '>'
 c_lesseq: '<='
 c_moreeq: '>='
 c_eq: '=='
+c_excl: '!'
 c_neq: '!='
 c_seq: '==='
 c_nseq: '!=='
@@ -161,7 +127,6 @@ c_rushift: '>>>'
 c_ampersand: '&'
 c_vertical: '|'
 c_caret: '^'
-c_excl: '!'
 c_tilde: '~'
 c_and: '&&'
 c_or: '||'
@@ -170,6 +135,7 @@ c_colon: ':'
 c_assign: '='
 c_assignplus: '+='
 c_assignminus: '-='
+c_asterisk: '*'
 c_assignmulti: '*='
 c_assignpercent: '%='
 c_assignlshift: '<<='
@@ -180,17 +146,51 @@ c_assignvertical: '|='
 c_assigncaret: '^='
 c_assignslash: '/='
 c_slash: '/'
-c_asterisk: '*'
-c_dollar: '$'
-c_dash: '-'
 c_backslash: '\'
+
+c_dollar: '$'
 c_exp: 'e'
-c_bexp: 'E'
+c_expb: 'E'
 
 null
 true
 false
-this
+
+identifier: identifierName //not reserved word
+
+UnicodeIDStart:
+	any Unicode code point with the Unicode property “ID_Start” or “Other_ID_Start”
+	See 11.6
+UnicodeIDContinue:
+	any Unicode code point with the Unicode property “ID_Continue”, “Other_ID_Continue”, or “Other_ID_Start”
+
+identifierName: identifierStart
+	| identifierName identifierPart
+	
+identifierStart:  '$' 
+	| '_' 
+	| UnicodeIDStart  
+	| \unicodeEscapeSequence
+	
+identifierPart: UnicodeIDContinue
+	| $
+	| _
+	| \unicodeEscapeSequence
+	| c_zwnj
+	| c_zwj
+
+unicodeEscapeSequence: u HexDigit HexDigit HexDigit HexDigit
+
+literal: null
+	| ('true' | 'false')
+	| numericLit
+	| stringLit
+	| reqularExprLit
+	
+stringLit: '"' [char^"] '"'
+	| ''' [char^'] '''
+	
+reqularExprLit: / regularExprBody / RegularExprFlags
 
 decimalLit: decimalIntegerLit '.' decimalDigits expPart
 	| '.' decimalDigits expPart

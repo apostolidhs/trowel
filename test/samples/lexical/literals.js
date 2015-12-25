@@ -1,0 +1,12 @@
+1 
+2.3 
+.2 
+1.1e2 
+.1e2 
+'test'
+"test"
+true
+false
+null
+truefalse;null
+1.1e-2

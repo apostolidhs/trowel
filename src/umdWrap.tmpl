@@ -1,0 +1,21 @@
+(function(root, factory) {
+    if (typeof define === 'function' && define.amd) {
+		// like: require.js
+        define(['underscore'], factory);
+    } else if (typeof exports === 'object') {
+		// like: Node.js
+        module.exports = factory(require('underscore'));
+    } else {
+		// browser global object
+        root.trowel = root.trl = factory(root._);
+    }
+}(this, function(_) {
+
+    if(!(_ && _.VERSION)) {
+        throw new Error('Trowel\'s JavaScript requires underscore')
+    }
+
+    {%= body %}
+    
+    return trl;
+}));

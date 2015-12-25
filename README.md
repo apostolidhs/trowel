@@ -44,6 +44,8 @@ Trowel is full compatible on all the web browsers, Rhino, Node.js and most of th
 
 ### Include
 
+*Trowel has dependency on underscore*
+
 #### Web browsers global object
 
 ```html

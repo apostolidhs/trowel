@@ -17,13 +17,25 @@
   ],
   "homepage": "https://github.com/apostolidhs/trowel",
   "moduleType": [],
-  "private": true,
+  "private": false,
   "ignore": [
     "**/.*",
     "node_modules",
     "bower_components",
+    ".vscode",
+    "doc",
+    "src",
     "test",
-    "tests"
+    "tsDefinitions",
+    ".gitattributes",
+    ".gitignore",
+    "bower.json",
+    "gulp-config.js",
+    "gulpfile.js",
+    "package.json",
+    "README.md",
+    "tsconfig.json",
+    "tsd.json"
   ],
   "devDependencies": {
     "underscore": "~1.8.3"

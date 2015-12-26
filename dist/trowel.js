@@ -50,42 +50,6 @@
                 }(utilities = frontend.utilities || (frontend.utilities = {})));
             }(frontend = trl.frontend || (trl.frontend = {})));
         }(trl || (trl = {})));
-        /// <reference path="IException.d.ts" />
-        var trl;
-        (function (trl) {
-            var frontend;
-            (function (frontend) {
-                var lexical;
-                (function (lexical) {
-                    var ExceptionHandler = function () {
-                        function ExceptionHandler() {
-                            this.exceptions = [];
-                        }
-                        ExceptionHandler.prototype.addException = function (msg, line, col) {
-                            var exception = {
-                                pos: {
-                                    col: col,
-                                    line: line
-                                },
-                                msg: msg
-                            };
-                            this.exceptions.push(exception);
-                        };
-                        ExceptionHandler.prototype.hasExceptions = function () {
-                            return !_.isEmpty(this.exceptions);
-                        };
-                        ExceptionHandler.prototype.clear = function () {
-                            this.exceptions.length = 0;
-                        };
-                        ExceptionHandler.prototype.getExceptions = function () {
-                            return this.exceptions;
-                        };
-                        return ExceptionHandler;
-                    }();
-                    lexical.ExceptionHandler = ExceptionHandler;
-                }(lexical = frontend.lexical || (frontend.lexical = {})));
-            }(frontend = trl.frontend || (trl.frontend = {})));
-        }(trl || (trl = {})));
         var trl;
         (function (trl) {
             var frontend;
@@ -400,7 +364,7 @@
         /// <reference path="../../../tsDefinitions/tsd.d.ts" />
         /// <reference path="../utilities/CharPoints.ts" />
         /// <reference path="ILexer.d.ts" />
-        /// <reference path="Exception.ts" />
+        /// <reference path="IException.d.ts" />
         /// <reference path="TokenDefinitions.ts" />
         /// <reference path="Identifyers.ts" />
         var trl;
@@ -994,6 +958,42 @@
                         return Lexer;
                     }();
                     lexical.Lexer = Lexer;
+                }(lexical = frontend.lexical || (frontend.lexical = {})));
+            }(frontend = trl.frontend || (trl.frontend = {})));
+        }(trl || (trl = {})));
+        /// <reference path="IException.d.ts" />
+        var trl;
+        (function (trl) {
+            var frontend;
+            (function (frontend) {
+                var lexical;
+                (function (lexical) {
+                    var ExceptionHandler = function () {
+                        function ExceptionHandler() {
+                            this.exceptions = [];
+                        }
+                        ExceptionHandler.prototype.addException = function (msg, line, col) {
+                            var exception = {
+                                pos: {
+                                    col: col,
+                                    line: line
+                                },
+                                msg: msg
+                            };
+                            this.exceptions.push(exception);
+                        };
+                        ExceptionHandler.prototype.hasExceptions = function () {
+                            return !_.isEmpty(this.exceptions);
+                        };
+                        ExceptionHandler.prototype.clear = function () {
+                            this.exceptions.length = 0;
+                        };
+                        ExceptionHandler.prototype.getExceptions = function () {
+                            return this.exceptions;
+                        };
+                        return ExceptionHandler;
+                    }();
+                    lexical.ExceptionHandler = ExceptionHandler;
                 }(lexical = frontend.lexical || (frontend.lexical = {})));
             }(frontend = trl.frontend || (trl.frontend = {})));
         }(trl || (trl = {})));

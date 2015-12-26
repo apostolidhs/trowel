@@ -6,6 +6,10 @@
 2. syntax phase
 3. run-time
 
+## API documentation
+
+[Documentation](https://github.com/apostolidhs/trowel/blob/master/doc/APIDocumentation.md)
+
 ## Install 
 
 ### Requirements
@@ -85,8 +89,11 @@ trowel.frontend.api.tokenize(sourceCode);
 ```
 
 Takes as argument an Ecmascript5 source code string and yields an Object that contains: 
+
 1. tokens: array of tokens
 2. exceptions: array of exceptions, in case of parse error 
+
+[More Information](https://github.com/apostolidhs/trowel/blob/master/doc/APIDocumentation.md)
 
 ```javascript
 var tokens = trowel.frontend.api.tokenize("HelloWorld = true");

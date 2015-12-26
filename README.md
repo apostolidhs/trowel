@@ -1,4 +1,11 @@
+[![NPM version](https://img.shields.io/npm/v/trowel.svg)](https://www.npmjs.com/package/trowel)
+![Bower version](https://img.shields.io/bower/v/trowel.svg)
+
 **Trowel** is an under-construction Ecmascript5 interpreter written in TypeScript
+
+Current Keywords: *lexer, parser, lex, syntax, ecmascript, javascript, ast*
+
+Bibliography: [EcmaScript5](http://www.ecma-international.org/ecma-262/5.1), [Mozilla SpiderMonkey Parser API](https://developer.mozilla.org/en-US/docs/Mozilla/Projects/SpiderMonkey/Parser_API)
 
 ## Currently project cover
 

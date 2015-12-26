@@ -1,7 +1,7 @@
 /// <reference path="../../../tsDefinitions/tsd.d.ts" />
 /// <reference path="../utilities/CharPoints.ts" />
 /// <reference path="ILexer.d.ts" />
-/// <reference path="Exception.ts" />
+/// <reference path="IException.d.ts" />
 /// <reference path="TokenDefinitions.ts" />
 /// <reference path="Identifyers.ts" />
 
@@ -130,7 +130,7 @@ module trl.frontend.lexical {
 			lookup[PNC.backslash] = () => States.identifier;
 		}
 
-		constructor(private charStream: ICharacterStream, private exceptionHandler: ExceptionHandler) {
+		constructor(private charStream: ICharacterStream, private exceptionHandler: IExceptionHandler) {
 			this.lineno = 0;
 			this.currLineCursor = 0;
 

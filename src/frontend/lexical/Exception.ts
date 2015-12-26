@@ -1,12 +1,12 @@
 /// <reference path="IException.d.ts" />
 
 module trl.frontend.lexical {
-	export class ExceptionHandler {
+	export class ExceptionHandler implements IExceptionHandler {
 		private exceptions: IException[] = [];
 		
 		constructor(){}
 		
-		public addException(msg: string, line: number, col: number) {
+		addException(msg: string, line: number, col: number) {
 			let exception: IException = {
 				pos: {
 					col: col,
@@ -17,15 +17,15 @@ module trl.frontend.lexical {
 			this.exceptions.push(exception);
 		}
 		
-		public hasExceptions(): boolean {
+		hasExceptions(): boolean {
 			return !_.isEmpty(this.exceptions);
 		}
 		
-		public clear(): void {
+		clear(): void {
 			this.exceptions.length = 0;
 		}
 		
-		public getExceptions(): IException[] {
+		getExceptions(): IException[] {
 			return this.exceptions;
 		}
 	}

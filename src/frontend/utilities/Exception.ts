@@ -1,31 +1,31 @@
 /// <reference path="IException.d.ts" />
 
-module trl.frontend.lexical {
+module trl.frontend.utilities {
 	export class ExceptionHandler implements IExceptionHandler {
 		private exceptions: IException[] = [];
 		
-		constructor(){}
+		public constructor(){}
 		
-		addException(msg: string, line: number, col: number) {
+		public addException(msg: string, line: number, column: number) {
 			let exception: IException = {
 				pos: {
-					col: col,
-					line: line
+					column, 
+                    line
 				},		
 				msg: msg
 			};
 			this.exceptions.push(exception);
 		}
 		
-		hasExceptions(): boolean {
+		public hasExceptions(): boolean {
 			return !_.isEmpty(this.exceptions);
 		}
 		
-		clear(): void {
+		public clear(): void {
 			this.exceptions.length = 0;
 		}
 		
-		getExceptions(): IException[] {
+		public getExceptions(): IException[] {
 			return this.exceptions;
 		}
 	}

@@ -1,13 +1,9 @@
+/// <reference path="../lexical/ILexer.ts" />
 
-declare module trl.frontend.lexical {
-	
-	export interface IInvalidTokenPos {
-		col: number,
-		line: number
-	}
-	
+declare module trl.frontend.utilities {
+		
 	export interface IException {
-		pos: IInvalidTokenPos,
+		pos: lexical.ITokenPosition,
 		msg: string
 	}
     

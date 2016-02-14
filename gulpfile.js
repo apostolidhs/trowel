@@ -20,7 +20,7 @@ gulp.task("compile-concat-ts", function () {
         .js
         .pipe(concat(config.js.filename)) //just to rename
         .pipe(wrapJS(fs.readFileSync(config.js.umdTemplate, "utf8")))
-        .pipe(sourcemaps.write('.'))
+        .pipe(sourcemaps.write())
         .pipe(gulp.dest('.'));
 });
 ////////////Javascript///////////////////

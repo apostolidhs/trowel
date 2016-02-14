@@ -9,8 +9,8 @@ Bibliography: [EcmaScript5](http://www.ecma-international.org/ecma-262/5.1), [Mo
 
 ## Currently project cover
 
-1. ~~lexical phase~~
-2. syntax phase
+1. ~~lexical phase~~ (finished)
+2. syntax phase (working on it)
 3. run-time
 
 ## API documentation
@@ -103,8 +103,8 @@ Takes as argument an Ecmascript5 source code string and yields an Object that co
 [More Information](https://github.com/apostolidhs/trowel/blob/master/doc/APIDocumentation.md)
 
 ```javascript
-var tokens = trowel.frontend.api.tokenize("HelloWorld = true");
-console.log(JSON.stringify(tokens, undefined, "\t"));
+var tokens = trowel.frontend.api.tokenize("HelloWorld = true", { loc: true });
+console.log(JSON.stringify(tokens, undefined, 4));
 // result of console log:
 {
 	"tokens": [
@@ -113,11 +113,11 @@ console.log(JSON.stringify(tokens, undefined, "\t"));
 			"value": "HelloWorld",
 			"loc": {
 				"start": {
-					"line": 0,
+					"line": 1,
 					"column": 0
 				},
 				"end": {
-					"line": 0,
+					"line": 1,
 					"column": 10
 				}
 			}
@@ -127,11 +127,11 @@ console.log(JSON.stringify(tokens, undefined, "\t"));
 			"value": "=",
 			"loc": {
 				"start": {
-					"line": 0,
+					"line": 1,
 					"column": 11
 				},
 				"end": {
-					"line": 0,
+					"line": 1,
 					"column": 12
 				}
 			}
@@ -142,11 +142,11 @@ console.log(JSON.stringify(tokens, undefined, "\t"));
 			"subType": "boolean",
 			"loc": {
 				"start": {
-					"line": 0,
+					"line": 1,
 					"column": 13
 				},
 				"end": {
-					"line": 0,
+					"line": 1,
 					"column": 17
 				}
 			}

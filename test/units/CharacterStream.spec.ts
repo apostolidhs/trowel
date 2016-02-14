@@ -7,6 +7,7 @@ describe('js source text read as characters stream', function() {
 	it('every character in the stream read properly', function() {
 
 		const charStreamFiles = trl.test.Utilities.getSampleFiles((<any>window).__html__, ["/charStream"]);
+        expect(_.isEmpty(charStreamFiles)).toBe(false);
 
 		_.each(charStreamFiles, (content: string, filepath: string) => {
 
@@ -30,6 +31,5 @@ describe('js source text read as characters stream', function() {
 			}
 			trl.test.Utilities.expectToEqual(char, undefined, "on stream finish next value is undefined");
 		});
-		console.log("finish");
 	});
 });

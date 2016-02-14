@@ -6,58 +6,8 @@
 
 describe('js source text read as tokens', function() {
 
-	interface testExpectation {
-		file: string,
-		content: string,
-		expect: any
-	}
-
-	function tokenizeLexer(testingExpect: testExpectation) {
-		let cs = <any>new trl.frontend.lexical.CharacterStream(testingExpect.content);
-		let eh = new trl.frontend.lexical.ExceptionHandler();
-		let lex = new trl.frontend.lexical.Lexer(cs, eh);
-		let tokenNum = 0;
-		while(true) {
-			const token = lex.getNextToken();
-			if(token === undefined) {
-				break;
-			}
-			const expectToken = testingExpect.expect[tokenNum++];
-			expectToken.subType = expectToken.subType || undefined;
-			trl.test.Utilities.expectToEqual(
-				_.isEqual(token, expectToken), 
-				true, 
-				[
-					"file: ", 
-					testingExpect.file, 
-					", index: ", 
-					tokenNum, 
-					", lexToken: ", 
-					JSON.stringify(token, undefined, "\t"), 
-					", expToken: ", 
-					JSON.stringify(expectToken, undefined, "\t")
-				].join("")
-			);
-		}
-		trl.test.Utilities.expectToEqual(eh.hasExceptions(), false, "lexer should tokenize without exceptions");
-	}
-
 	it('every token in the lexer read properly', function() {
-		let lexicalFiles = trl.test.Utilities.getSampleFiles((<any>window).__html__, ["/lexical/literal"]);
-		let testingSamples = _.chain(lexicalFiles)
-			.keys()
-			.filter(filename => filename.indexOf(".expect.js") === -1)
-			.value();
-
-		let testingExpects = _.map(testingSamples, testingSample => {
-			let expectFilename = testingSample.substring(0, testingSample.length - 3) + ".expect.js";
-			return {
-				file: testingSample,
-				content: lexicalFiles[testingSample],
-				expect: JSON.parse(lexicalFiles[expectFilename])
-			};
-		});
-
+        const testingExpects = trl.test.Utilities.getTestingExpects((<any>window).__html__, ["/lexical/"]);
 		_.each(testingExpects, testingExpect => tokenizeLexer(testingExpect));
 	});
 	
@@ -81,11 +31,11 @@ describe('js source text read as tokens', function() {
 				"subType": "string",
 				"loc": {
 					"start": {
-						"line": 0,
+						"line": 1,
 						"column": 0
 					},
 					"end": {
-						"line": 0,
+						"line": 1,
 						"column": 10
 					}
 				}
@@ -95,11 +45,11 @@ describe('js source text read as tokens', function() {
 				"value": "vafake",
 				"loc": {
 					"start": {
-						"line": 1,
+						"line": 2,
 						"column": 0
 					},
 					"end": {
-						"line": 1,
+						"line": 2,
 						"column": 16
 					}
 				}
@@ -109,11 +59,11 @@ describe('js source text read as tokens', function() {
 				"value": "fakea",
 				"loc": {
 					"start": {
-						"line": 2,
+						"line": 3,
 						"column": 0
 					},
 					"end": {
-						"line": 2,
+						"line": 3,
 						"column": 10
 					}
 				}
@@ -123,11 +73,11 @@ describe('js source text read as tokens', function() {
 				"value": "vafake",
 				"loc": {
 					"start": {
-						"line": 3,
+						"line": 4,
 						"column": 0
 					},
 					"end": {
-						"line": 3,
+						"line": 4,
 						"column": 16
 					}
 				}
@@ -137,11 +87,11 @@ describe('js source text read as tokens', function() {
 				"value": ";",
 				"loc": {
 					"start": {
-						"line": 3,
+						"line": 4,
 						"column": 16
 					},
 					"end": {
-						"line": 3,
+						"line": 4,
 						"column": 17
 					}
 				}
@@ -151,11 +101,11 @@ describe('js source text read as tokens', function() {
 				"value": "fakea",
 				"loc": {
 					"start": {
-						"line": 3,
+						"line": 4,
 						"column": 17
 					},
 					"end": {
-						"line": 3,
+						"line": 4,
 						"column": 27
 					}
 				}
@@ -165,11 +115,11 @@ describe('js source text read as tokens', function() {
 				"value": "t",
 				"loc": {
 					"start": {
-						"line": 4,
+						"line": 5,
 						"column": 0
 					},
 					"end": {
-						"line": 4,
+						"line": 5,
 						"column": 1
 					}
 				}
@@ -179,11 +129,11 @@ describe('js source text read as tokens', function() {
 				"value": "=",
 				"loc": {
 					"start": {
-						"line": 4,
+						"line": 5,
 						"column": 2
 					},
 					"end": {
-						"line": 4,
+						"line": 5,
 						"column": 3
 					}
 				}
@@ -193,11 +143,11 @@ describe('js source text read as tokens', function() {
 				"value": "{",
 				"loc": {
 					"start": {
-						"line": 4,
+						"line": 5,
 						"column": 4
 					},
 					"end": {
-						"line": 4,
+						"line": 5,
 						"column": 5
 					}
 				}
@@ -207,11 +157,11 @@ describe('js source text read as tokens', function() {
 				"value": "b",
 				"loc": {
 					"start": {
-						"line": 4,
+						"line": 5,
 						"column": 6
 					},
 					"end": {
-						"line": 4,
+						"line": 5,
 						"column": 7
 					}
 				}
@@ -221,11 +171,11 @@ describe('js source text read as tokens', function() {
 				"value": ":",
 				"loc": {
 					"start": {
-						"line": 4,
+						"line": 5,
 						"column": 7
 					},
 					"end": {
-						"line": 4,
+						"line": 5,
 						"column": 8
 					}
 				}
@@ -235,11 +185,11 @@ describe('js source text read as tokens', function() {
 				"value": "/*bigger\ncomment\n*/",
 				"loc": {
 					"start": {
-						"line": 4,
+						"line": 5,
 						"column": 9
 					},
 					"end": {
-						"line": 6,
+						"line": 7,
 						"column": 2
 					}
 				}
@@ -250,11 +200,11 @@ describe('js source text read as tokens', function() {
 				"subType": "number",
 				"loc": {
 					"start": {
-						"line": 6,
+						"line": 7,
 						"column": 2
 					},
 					"end": {
-						"line": 6,
+						"line": 7,
 						"column": 3
 					}
 				}
@@ -264,11 +214,11 @@ describe('js source text read as tokens', function() {
 				"value": "}",
 				"loc": {
 					"start": {
-						"line": 6,
+						"line": 7,
 						"column": 3
 					},
 					"end": {
-						"line": 6,
+						"line": 7,
 						"column": 4
 					}
 				}
@@ -278,11 +228,11 @@ describe('js source text read as tokens', function() {
 				"value": "multilinestring",
 				"loc": {
 					"start": {
-						"line": 7,
+						"line": 8,
 						"column": 0
 					},
 					"end": {
-						"line": 7,
+						"line": 8,
 						"column": 15
 					}
 				}
@@ -292,11 +242,11 @@ describe('js source text read as tokens', function() {
 				"value": "=",
 				"loc": {
 					"start": {
-						"line": 7,
+						"line": 8,
 						"column": 16
 					},
 					"end": {
-						"line": 7,
+						"line": 8,
 						"column": 17
 					}
 				}
@@ -307,11 +257,11 @@ describe('js source text read as tokens', function() {
 				"subType": "string",
 				"loc": {
 					"start": {
-						"line": 7,
+						"line": 8,
 						"column": 18
 					},
 					"end": {
-						"line": 7,
+						"line": 8,
 						"column": 23
 					}
 				}
@@ -321,11 +271,11 @@ describe('js source text read as tokens', function() {
 				"value": "+",
 				"loc": {
 					"start": {
-						"line": 7,
+						"line": 8,
 						"column": 24
 					},
 					"end": {
-						"line": 7,
+						"line": 8,
 						"column": 25
 					}
 				}
@@ -336,11 +286,11 @@ describe('js source text read as tokens', function() {
 				"subType": "string",
 				"loc": {
 					"start": {
-						"line": 8,
+						"line": 9,
 						"column": 1
 					},
 					"end": {
-						"line": 9,
+						"line": 10,
 						"column": 5
 					}
 				}
@@ -367,4 +317,36 @@ describe('js source text read as tokens', function() {
 			trl.test.Utilities.expectToEqual(token.exceptions && token.exceptions.length > 0, true, src);
 		});
 	});
+    
+	function tokenizeLexer(testingExpect: trl.test.ITestExpectation) {
+		let cs = new trl.frontend.lexical.CharacterStream(testingExpect.content);
+		let eh = new trl.frontend.utilities.ExceptionHandler();
+		let lex = new trl.frontend.lexical.Lexer(cs, eh, {loc: true});
+		let tokenNum = 0;
+
+		while(true) {
+			const token = lex.nextToken();
+			if(token.type === "eof") {
+				break;
+			}
+			const expectToken = testingExpect.expect[tokenNum++];
+            
+			expectToken.subType = expectToken.subType || undefined;
+			trl.test.Utilities.expectToEqual(
+				_.isEqual(token, expectToken), 
+				true, 
+				[
+					"file: ", 
+					testingExpect.file, 
+					", index: ", 
+					tokenNum, 
+					", lexToken: ", 
+					JSON.stringify(token, undefined, "\t"), 
+					", expToken: ", 
+					JSON.stringify(expectToken, undefined, "\t")
+				].join("")
+			);
+		}
+		trl.test.Utilities.expectToEqual(eh.hasExceptions(), false, "lexer should tokenize without exceptions");
+	}    
 });

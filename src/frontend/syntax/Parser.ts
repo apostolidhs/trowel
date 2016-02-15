@@ -26,9 +26,9 @@ module trl.frontend.syntax {
             private options?: IParserOptions
         ) {
             this.options = _.defaults(
-                    _.clone(options || {}), 
-                    Parser.defaultParserOptions
-                );            
+                _.clone(options || {}),
+                Parser.defaultParserOptions
+            );
             this.nodeFactory = new NodeFactory(this.options.loc);
             this.parseException = new utilities.ExceptionHandler();
 
@@ -36,7 +36,8 @@ module trl.frontend.syntax {
             this.lexException = new utilities.ExceptionHandler();
             const lexOptions = {
                 loc: true,
-                readableTokensMode: false
+                readableTokensMode: false,
+                includeCommentsAsNormalTokens: false
             };
             this.lex = new lexical.Lexer(this.charStream, this.lexException, lexOptions);
         }
@@ -52,32 +53,32 @@ module trl.frontend.syntax {
 
         private trimOptionalSemicolon(): boolean {
             const token = this.lex.lookAheadNextToken();
-            if(this.lex.isPunctuationValue(token, ";")) {
+            if (this.lex.isPunctuationValue(token, ";")) {
                 this.lex.nextToken();
-            } else if(this.tokenIsInSameLine(token) && !this.lex.isEof(token)){
+            } else if (this.tokenIsInSameLine(token) && !this.lex.isEof(token)) {
                 this.addException(token);
                 return false;
             }
             return true;
         }
-      
+
         private trackPositionUnary(token: lexical.IToken): lexical.ITokenSourceLocation {
             return token.loc;
-        }        
-      
+        }
+
         private trackPositionByPos(startPos: lexical.ITokenPosition): lexical.ITokenSourceLocation {
             const latestToken = this.lex.latestToken();
             return this.createLoc(startPos, latestToken.loc.end);
-        }      
-        
+        }
+
         private trackPositionByToken(startToken: lexical.IToken): lexical.ITokenSourceLocation {
             const latestToken = this.lex.latestToken();
             return this.createLoc(startToken.loc.start, latestToken.loc.end);
         }
-        
+
         private createLoc(start: lexical.ITokenPosition, end: lexical.ITokenPosition): lexical.ITokenSourceLocation {
             return { start, end };
-        }        
+        }
 
         private expectPunctuation(value: string): boolean {
             const token = this.lex.nextToken();
@@ -96,7 +97,7 @@ module trl.frontend.syntax {
             this.addException(token);
             return false;
         }
-        
+
         private tokenIsInSameLine(token: lexical.IToken): boolean {
             return token.loc.end.line === this.lex.latestToken().loc.end.line;
         }
@@ -104,9 +105,8 @@ module trl.frontend.syntax {
         public parse(): IProgram {
             const initialToken = this.lex.lookAheadNextToken();
             const stmts = this.parseSourceElements();
-            if(!stmts) {
-                return;
-            }
+            if (!stmts) return;
+
             return this.nodeFactory.createProgram(stmts, this.trackPositionByToken(initialToken));
         }
 
@@ -115,9 +115,8 @@ module trl.frontend.syntax {
 
             while (this.lex.hasNext()) {
                 const stmt = this.parseStatement();
-                if (!stmt) {
-                    return;
-                }
+                if (!stmt) return;
+
                 stmts.push(stmt);
             }
 
@@ -138,67 +137,246 @@ module trl.frontend.syntax {
                 switch (token.value) {
                     case "var":
                         return this.parseVariableStatement();
+                    case "if":
+                        return this.parseIfStatement();
+                    case "while":
+                        return this.parseWhileStatement();
+                    case "do":
+                        return this.parseDoWhileStatement();    
+                    case "for":
+                        return this.parseForStatement();                                              
+                }
+            }
+            if (this.lex.isPunctuation(token)) {
+                switch (token.value) {
+                    case "{":
+                        return this.parseBlockStatement();
+                    case ";":
+                        return this.parseEmptyStatement();
                 }
             }
             return this.parseExpressionStatement();
         }
 
-        public parseVariableStatement(): IStatement {
+        public parseBlockStatement(): IStatement {
             const initialToken = this.lex.lookAheadNextToken();
-            if (!this.expectKeyword("var")) {
-                return;
+            if (!this.expectPunctuation("{")) return;
+
+
+            const stmts: IStatement[] = [];
+            let token = this.lex.lookAheadNextToken();
+            while (!this.lex.isPunctuationValue(token, "}")) {
+                const stmt = this.parseStatement();
+                if (!stmt) return;
+
+                stmts.push(stmt);
+                token = this.lex.lookAheadNextToken();
             }
 
-            let variableDeclarator = this.parseVariableDeclarator();
-            if (!variableDeclarator) {
-                return;
-            }
+            if (!this.expectPunctuation("}")) return;
 
-            const variableDeclarators: IVariableDeclarator[] = [variableDeclarator];
-            while (this.lex.matchPunctuation(",")) {
-                const variableDeclarator = this.parseVariableDeclarator();
-                if (!variableDeclarator) {
-                    return;
-                }
-
-                variableDeclarators.push(variableDeclarator);
-            }
-
-            if(!this.trimOptionalSemicolon()) {
-                return;
-            }
-
-            return this.nodeFactory.createDeclarationVariable(variableDeclarators, this.trackPositionByToken(initialToken));
+            return this.nodeFactory.createStatementBlock(stmts, this.trackPositionByToken(initialToken));
         }
 
-        public parseVariableDeclarator(): IVariableDeclarator {
-            const token = this.lex.nextToken();
-            if (!this.lex.isIdentifier(token)) {
+        public parseEmptyStatement(): IStatement {
+            const initialToken = this.lex.lookAheadNextToken();
+            if (this.expectPunctuation(";")) {
+                return this.nodeFactory.createStatementEmpty(this.trackPositionByToken(initialToken));
+            }
+        }
+
+        public parseIfStatement(): IStatement {
+            const initialToken = this.lex.lookAheadNextToken();
+            const testExpr = this.parseKeywordLparExpressionRpar("if");
+            if (!testExpr) return;
+
+
+            const consStmt = this.parseStatement();
+            if (!consStmt) return;
+
+
+            let altStmt = null;
+            if (this.lex.matchKeyword("else")) {
+                altStmt = this.parseStatement();
+                if (!altStmt) return;
+
+            }
+            return this.nodeFactory.createStatementIf(testExpr, consStmt, altStmt, this.trackPositionByToken(initialToken));
+        }
+
+        public parseWhileStatement(): IStatement {
+            const initialToken = this.lex.lookAheadNextToken();
+            const testExpr = this.parseKeywordLparExpressionRpar("while");
+            if (!testExpr) return;
+
+
+            const stmt = this.parseStatement();
+            if (stmt) {
+                return this.nodeFactory.createStatementWhile(testExpr, stmt, this.trackPositionByToken(initialToken));
+            }
+        }
+
+        public parseDoWhileStatement(): IStatement {
+            const initialToken = this.lex.lookAheadNextToken();
+            if (!this.expectKeyword("do")) return;
+
+
+            const stmt = this.parseStatement();
+            if (!stmt) return;
+
+            const testExpr = this.parseKeywordLparExpressionRpar("while");
+            if (!testExpr) return;
+
+
+            this.lex.matchPunctuation(";");
+
+            return this.nodeFactory.createStatementDoWhile(stmt, testExpr, this.trackPositionByToken(initialToken));
+        }
+
+        public parseForStatement(): IStatement {
+            const initialToken = this.lex.lookAheadNextToken();
+            if (!(this.expectKeyword("for") && this.expectPunctuation("("))) return;
+
+
+            let initDecl: IVariableDeclaration = null,
+                declarations: IVariableDeclarator[],
+                initExpr: IExpression = null,
+                token = this.lex.lookAheadNextToken();
+            if (!this.lex.isPunctuationValue(token, ";")) {
+                if (this.lex.isKeywordValue(token, "var")) {
+                    this.lex.nextToken();
+                    declarations = this.parseVariableDeclarators();
+                    if (!declarations) return;
+                    initDecl = this.nodeFactory.createDeclarationVariable(declarations, this.trackPositionByToken(token));
+                } else {
+                    initExpr = this.parseExpression();
+                    if (!initExpr) return;
+                }                
+            }
+
+            let isForIn = false,
+                test = null;
+            token = this.lex.lookAheadNextToken();
+            if (this.lex.isKeywordValue(token, "in")) {
+                this.lex.nextToken();
+                isForIn = true;
+                if ((!initExpr && !declarations) ||
+                    ((initExpr && !Parser.isLeftHandExpressionResolvingToReference(initExpr))
+                        || (declarations && declarations.length !== 1))
+                ) {
+                    this.parseException.addException(
+                        `for in left side should resolve to reference`,
+                        initialToken.loc.start.line,
+                        initialToken.loc.start.column
+                    );
+                    return;
+                }
+            } else {
+                if (!this.expectPunctuation(";")) return;
+
+                
+                token = this.lex.lookAheadNextToken();
+                if (!this.lex.isPunctuationValue(token, ";")) {
+                    test = this.parseExpression();
+                    if (!test) return;
+                }
+
+                if (!this.expectPunctuation(";")) return;
+
+            }
+
+            let update = null;
+            token = this.lex.lookAheadNextToken();
+            if (!this.lex.isPunctuationValue(token, ")")) {
+                update = this.parseExpression();
+                if (!update) return;
+
+            }
+
+            if (isForIn && !update) {
                 this.addException(token);
                 return;
             }
 
+            if (!this.expectPunctuation(")")) return;
+
+
+            const body = this.parseStatement();
+            if (!body) return;
+
+
+            const pos = this.trackPositionByToken(initialToken);
+            const init = initExpr || initDecl;
+            if (isForIn) {
+                return this.nodeFactory.createStatementForIn(init, update, body, false, pos);
+            } else {
+                return this.nodeFactory.createStatementFor(init, test, update, body, pos);
+            }
+        }
+
+        private parseKeywordLparExpressionRpar(keyword: string): IExpression {
+            if (!(this.expectKeyword(keyword) && this.expectPunctuation("("))) return;
+
+
+            const expr = this.parseExpression();
+            if (expr && this.expectPunctuation(")")) {
+                return expr;
+            }
+        }
+
+        public parseVariableStatement(): IStatement {
+            const initialToken = this.lex.lookAheadNextToken();
+            if (!this.expectKeyword("var")) return;
+
+
+            const variableDeclarators = this.parseVariableDeclarators();
+
+            if (!this.trimOptionalSemicolon()) return;
+
+
+            return this.nodeFactory.createDeclarationVariable(variableDeclarators, this.trackPositionByToken(initialToken));
+        }
+
+        private parseVariableDeclarators(): IVariableDeclarator[] {
+            let variableDeclarator = this.parseVariableDeclarator();
+            if (!variableDeclarator) return;
+
+
+            const variableDeclarators: IVariableDeclarator[] = [variableDeclarator];
+            while (this.lex.matchPunctuation(",")) {
+                const variableDeclarator = this.parseVariableDeclarator();
+                if (!variableDeclarator) return;
+
+
+                variableDeclarators.push(variableDeclarator);
+            }
+            return variableDeclarators;
+        }
+
+        public parseVariableDeclarator(): IVariableDeclarator {
+            const initialToken = this.lex.lookAheadNextToken();
+            const identifier = this.parseIdentifier();
+            if (!identifier) return;
+
+
             let expr = null;
             if (this.lex.matchPunctuation("=")) {
                 expr = this.parseAssignmentExpression();
-                if (!expr) {
-                    return;
-                }
+                if (!expr) return;
+
             }
 
-            return this.nodeFactory.createVariableDeclarator(token.value, expr, this.trackPositionByToken(token));
+            return this.nodeFactory.createVariableDeclarator(identifier, expr, this.trackPositionByToken(initialToken));
         }
 
         public parseExpressionStatement(): IStatement {
             const initialToken = this.lex.lookAheadNextToken();
             const expr = this.parseExpression();
-            if(!expr) {
-                return;
-            }
-            
-            if(!this.trimOptionalSemicolon()) {
-                return;
-            }            
+            if (!expr) return;
+
+
+            if (!this.trimOptionalSemicolon()) return;
+
 
             return this.nodeFactory.createStatementExpression(expr, this.trackPositionByToken(initialToken));
         }
@@ -211,17 +389,14 @@ module trl.frontend.syntax {
         public parseExpression(): IExpression {
             const initialToken = this.lex.lookAheadNextToken();
             const expr = this.parseAssignmentExpression();
-            if (!expr) {
-                return;
-            }
+            if (!expr) return;
+
 
             if (this.lex.matchPunctuation(",")) {
                 const exprs: IExpression[] = [expr];
                 do {
                     const expr = this.parseAssignmentExpression();
-                    if (!expr) {
-                        return;
-                    }
+                    if (!expr) return;
                     exprs.push(expr);
                 } while (this.lex.matchPunctuation(","));
 
@@ -256,9 +431,8 @@ module trl.frontend.syntax {
             const initialToken = this.lex.lookAheadNextToken();
 
             const expr = this.parseConditionalExpression();
-            if (!expr) {
-                return;
-            }
+            if (!expr) return;
+
 
             const token = this.lex.lookAheadNextToken();
             if (this.lex.isPunctuation(token)
@@ -274,9 +448,8 @@ module trl.frontend.syntax {
                 }
                 this.lex.nextToken();
                 const rexpr = this.parseAssignmentExpression();
-                if (!rexpr) {
-                    return;
-                }
+                if (!rexpr) return;
+
                 return this.nodeFactory.createExpressionAssignment(token.value, expr, rexpr, this.trackPositionByToken(initialToken));
             }
 
@@ -286,26 +459,22 @@ module trl.frontend.syntax {
         public parseConditionalExpression(): IExpression {
             const initialToken = this.lex.lookAheadNextToken();
             const expr = this.parseBinaryExpression();
-            if (!expr) {
-                return;
-            }
+            if (!expr) return;
+
 
             const token = this.lex.lookAheadNextToken();
             if (this.lex.isPunctuationValue(token, "?")) {
                 this.lex.nextToken();
                 const consequentExpr = this.parseAssignmentExpression();
-                if (!consequentExpr) {
-                    return;
-                }
+                if (!consequentExpr) return;
 
-                if (!this.expectPunctuation(":")) {
-                    return;
-                }
+
+                if (!this.expectPunctuation(":")) return;
+
 
                 const alternateExpr = this.parseAssignmentExpression();
-                if (!alternateExpr) {
-                    return;
-                }
+                if (!alternateExpr) return;
+
 
                 return this.nodeFactory.createExpressionConditional(expr, alternateExpr, consequentExpr, this.trackPositionByToken(initialToken));
             }
@@ -371,9 +540,8 @@ module trl.frontend.syntax {
 
         public parseBinaryExpression(): IExpression {
             let lexpr = this.parseUnaryExpression();
-            if (!lexpr) {
-                return;
-            }
+            if (!lexpr) return;
+
 
             let token = this.lex.lookAheadNextToken();
             let binaryRank = Parser.BinaryTokenValues[token.value];
@@ -381,9 +549,8 @@ module trl.frontend.syntax {
             if (binaryRank && (this.lex.isPunctuation(token) || this.lex.isKeyword(token))) {
                 this.lex.nextToken();
                 const rexpr = this.parseUnaryExpression();
-                if (!rexpr) {
-                    return;
-                }
+                if (!rexpr) return;
+
 
                 const exprs: IExpression[] = [lexpr, rexpr],
                     puncs: string[] = [token.value],
@@ -399,9 +566,7 @@ module trl.frontend.syntax {
 
                     this.lex.nextToken();
                     const rexpr = this.parseUnaryExpression();
-                    if (!rexpr) {
-                        return;
-                    }
+                    if (!rexpr) return;
 
                     let lastRank = _.last(ranks);
                     while (lastRank && lastRank >= latestRank) {
@@ -448,9 +613,8 @@ module trl.frontend.syntax {
             if (unaryRank && (this.lex.isPunctuation(token) || this.lex.isKeyword(token))) {
                 this.lex.nextToken();
                 let expr = this.parsePostfixExpression();
-                if (!expr) {
-                    return;
-                }
+                if (!expr) return;
+
                 if (unaryRank === Parser.UnaryTokenValues_update) {
                     return this.nodeFactory.createExpressionUpdate(token.value, expr, true, this.trackPositionByToken(token));
                 }
@@ -464,15 +628,14 @@ module trl.frontend.syntax {
         public parsePostfixExpression(): IExpression {
             const initialToken = this.lex.lookAheadNextToken();
             const expr = this.parseLeftHandSideExpression(true);
-            if (!expr) {
-                return;
-            }
+            if (!expr) return;
+
 
             const token = this.lex.lookAheadNextToken();
             if (this.lex.isPunctuation(token) && token.loc.end.line === this.lex.latestToken().loc.end.line) {
                 if (token.value === "++" || token.value === "--") {
                     this.lex.nextToken();
-                    return this.nodeFactory.createExpressionUpdate(token.value, expr, false, this.trackPositionByToken(token));
+                    return this.nodeFactory.createExpressionUpdate(token.value, expr, false, this.trackPositionByToken(initialToken));
                 }
             }
 
@@ -499,9 +662,8 @@ module trl.frontend.syntax {
                 }
             }
             primaryExpr = primaryExpr || this.parsePrimaryExpression();
-            if (!primaryExpr) {
-                return;
-            }
+            if (!primaryExpr) return;
+
             let expr: INode, isMatchingExression = true;
             while (isMatchingExression) {
                 const token = this.lex.lookAheadNextToken();
@@ -513,21 +675,18 @@ module trl.frontend.syntax {
                     case "[":
                         this.lex.nextToken();
                         expr = this.parseExpression();
-                        if (!expr) {
-                            return;
-                        }
-                        if (!this.expectPunctuation("]")) {
-                            return;
-                        }
+                        if (!expr) return;
+
+                        if (!this.expectPunctuation("]")) return;
+
                         primaryExpr = this.nodeFactory.createExpressionMember(primaryExpr, expr, true, this.trackPositionByToken(initialToken));
                         break;
 
                     case ".":
                         this.lex.nextToken();
                         const identifier = this.parseIdentifier();
-                        if (!identifier) {
-                            return;
-                        }
+                        if (!identifier) return;
+
                         primaryExpr = this.nodeFactory.createExpressionMember(primaryExpr, identifier, false, this.trackPositionByToken(initialToken));
                         break;
 
@@ -577,14 +736,9 @@ module trl.frontend.syntax {
                         case "(": {
                             const token = this.lex.nextToken();
                             const expr = this.parseExpression();
-                            if(!expr) {
-                                return
-                            }
-        
+                            if (!expr) return;
+
                             if (this.lex.matchPunctuation(")")) {
-                                if(this.options.loc) {
-                                    expr.loc = this.trackPositionByToken(token);
-                                }
                                 return expr;
                             } else {
                                 this.addException(this.lex.nextToken());
@@ -599,31 +753,27 @@ module trl.frontend.syntax {
 
         public parseNewExpression(): IExpression {
             let initialToken = this.lex.lookAheadNextToken();
-            if (!this.expectKeyword("new")) {
-                return;
-            }
+            if (!this.expectKeyword("new")) return;
+
 
             const callExpr = this.parseLeftHandSideExpression(false);
-            if (!callExpr) {
-                return;
-            }
+            if (!callExpr) return;
+
 
             let args,
                 token = this.lex.lookAheadNextToken();
             if (this.lex.isPunctuationValue(token, "(")) {
                 args = this.parseArguments();
-                if (!args) {
-                    return;
-                }
+                if (!args) return;
+
             }
-           
+
             return this.nodeFactory.createExpressionNew(callExpr, args || [], this.trackPositionByToken(initialToken));
         }
 
         public parseArguments(): IExpression[] {
-            if (!this.expectPunctuation("(")) {
-                return;
-            }
+            if (!this.expectPunctuation("(")) return;
+
 
             let token = this.lex.lookAheadNextToken();
             const exprs: IExpression[] = [];
@@ -634,9 +784,8 @@ module trl.frontend.syntax {
 
             while (true) {
                 const expr = this.parseAssignmentExpression();
-                if (!expr) {
-                    return;
-                }
+                if (!expr) return;
+
                 exprs.push(expr);
 
                 token = this.lex.nextToken();
@@ -653,17 +802,15 @@ module trl.frontend.syntax {
 
         public parseArrayLiteral(): INode {
             const token = this.lex.lookAheadNextToken();
-            if (!this.expectPunctuation("[")) {
-                return;
-            }
+            if (!this.expectPunctuation("[")) return;
+
 
             const arrayExprs: INode[] = [];
             this.trimArrayCommas(arrayExprs);
             while (!this.lex.matchPunctuation("]")) {
                 const assignExpr = this.parseAssignmentExpression();
-                if (!assignExpr) {
-                    return;
-                }
+                if (!assignExpr) return;
+
                 arrayExprs.push(assignExpr);
                 if (this.lex.matchPunctuation(",")) {
                     this.trimArrayCommas(arrayExprs);
@@ -681,9 +828,8 @@ module trl.frontend.syntax {
 
         public parseObjectLiteral(): INode {
             const token = this.lex.lookAheadNextToken();
-            if (!this.expectPunctuation("{")) {
-                return;
-            }
+            if (!this.expectPunctuation("{")) return;
+
 
             const properties: IProperty[] = [];
             while (true) {
@@ -695,9 +841,8 @@ module trl.frontend.syntax {
                 }
 
                 const property = this.parsePropertyAssignment();
-                if (!property) {
-                    return;
-                }
+                if (!property) return;
+
                 properties.push(property);
 
                 token = this.lex.nextToken();
@@ -727,16 +872,14 @@ module trl.frontend.syntax {
             }
 
             const propertyName = this.parsePropertyName();
-            if (!propertyName) {
-                return;
-            }
+            if (!propertyName) return;
+
 
             let token = this.lex.nextToken();
             if (this.lex.isPunctuationValue(token, ":")) {
                 const expr = this.parseAssignmentExpression();
-                if (!expr) {
-                    return;
-                }
+                if (!expr) return;
+
 
                 return this.nodeFactory.createObjectProperty(propertyName, expr, kind, this.trackPositionByToken(initialToken));
 
@@ -746,21 +889,17 @@ module trl.frontend.syntax {
 
                 if (this.lex.isIdentifier(token)) {
                     args.push(token.value);
-                    if (!this.expectPunctuation(")")) {
-                        return;
-                    }
+                    if (!this.expectPunctuation(")")) return;
                 } else if (!this.lex.isPunctuationValue(token, ")")) {
                     this.addException(token);
                     return;
                 }
 
-                if (!this.expectPunctuation("{")) {
-                    return;
-                }
+                if (!this.expectPunctuation("{")) return;
+
                 const functionBody = this.parseFunctionBody();
-                if (!this.expectPunctuation("}")) {
-                    return;
-                }
+                if (!this.expectPunctuation("}")) return;
+
                 const functionExpr = this.nodeFactory.createExpressionFunction(null, args, functionBody, this.trackPositionByToken(token));
                 return this.nodeFactory.createObjectProperty(propertyName, functionExpr, kind, this.trackPositionByToken(initialToken));
 
@@ -794,8 +933,5 @@ module trl.frontend.syntax {
         public parseFunctionBody(): IBlockStatement {
             throw new Error("not implemented yet");
         }
-
     }
-
-
 }

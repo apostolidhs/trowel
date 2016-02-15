@@ -5,13 +5,14 @@ module trl.test {
     export interface ITestExpectation {
 		file: string,
 		content: string,
-		expect: any
+		expect: any 
 	}
     
 	export class Utilities {
         
 		public static expectToEqual(expectVal, tobeVal, msg?: string) {
 			if (expectVal !== tobeVal) {
+                debugger;
 				throw new Error(expectVal + ", " + tobeVal + (msg ? ", msg: " + msg : "") );
 			}
 			expect(expectVal).toEqual(tobeVal);

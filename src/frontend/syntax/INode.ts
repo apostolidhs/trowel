@@ -12,7 +12,7 @@ module trl.frontend.syntax {
     }
 
     export interface IFunction extends INode {
-        id?: IIdentifier;
+        id: IIdentifier;
         params: string[];
         body: IBlockStatement;
     }
@@ -32,15 +32,15 @@ module trl.frontend.syntax {
     export interface IIfStatement extends IStatement {
         test: IExpression;
         consequent: IStatement;
-        alternate?: IStatement;
+        alternate: IStatement;
     }
 
     export interface IBreakStatement extends IStatement {
-        label?: IIdentifier;
+        label: IIdentifier;
     }
 
     export interface IContinueStatement extends IStatement {
-        label?: IIdentifier;
+        label: IIdentifier;
     }
 
     export interface ISwitchStatement extends IStatement {
@@ -49,7 +49,7 @@ module trl.frontend.syntax {
     }
 
     export interface IReturnStatement extends IStatement {
-        argument?: IExpression;
+        argument: IExpression;
     }
 
     export interface IThrowStatement extends IStatement {
@@ -58,8 +58,8 @@ module trl.frontend.syntax {
 
     export interface ITryStatement extends IStatement {
         block: IBlockStatement;
-        handler?: ICatchClause;
-        finalizer?: IBlockStatement;
+        handler: ICatchClause;
+        finalizer: IBlockStatement;
     }
 
     export interface IWhileStatement extends IStatement {
@@ -73,9 +73,9 @@ module trl.frontend.syntax {
     }
 
     export interface IForStatement extends IStatement {
-        init?: IVariableDeclaration | IExpression;
-        test?: IExpression;
-        update?: IExpression;
+        init: IVariableDeclaration | IExpression;
+        test: IExpression;
+        update: IExpression;
         body: IStatement;
     }
 
@@ -98,8 +98,8 @@ module trl.frontend.syntax {
     }
 
     export interface IVariableDeclarator extends INode {
-        id: string;
-        init?: IExpression;
+        id: IIdentifier;
+        init: IExpression;
     }
 
     export interface IExpression extends INode { }
@@ -107,7 +107,7 @@ module trl.frontend.syntax {
     export interface IThisExpression extends IExpression { }
 
     export interface IArrayExpression extends IExpression {
-        elements?: IExpression[];
+        elements: IExpression[];
     }
 
     export interface IObjectExpression extends IExpression {
@@ -179,7 +179,7 @@ module trl.frontend.syntax {
     }
 
     export interface ISwitchCase extends INode {
-        test?: IExpression;
+        test: IExpression;
         consequent: IStatement[];
     }
 

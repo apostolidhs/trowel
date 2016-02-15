@@ -154,7 +154,7 @@ module trl.frontend.syntax {
             }, loc);
         }
         
-        public createVariableDeclarator(id: string, init: IExpression, loc?: lexical.ITokenSourceLocation): IVariableDeclarator {
+        public createVariableDeclarator(id: IIdentifier, init: IExpression, loc?: lexical.ITokenSourceLocation): IVariableDeclarator {
             return this.createNode({
                 type: "VariableDeclarator",                
                 id,

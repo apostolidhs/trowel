@@ -65,10 +65,11 @@ module trl.frontend.lexical {
         private static CharecterLookup;
 
         private token: IToken;
-        
+        private comments: IToken[];
+
         private lookAheadToken: IToken;
         private currentToken: IToken;
-        
+
         private lineno: number;
         private startLineno: number;
         private currLineCursor: number;
@@ -167,46 +168,52 @@ module trl.frontend.lexical {
 
         private static defaultLexerOptions: ILexerOptions = {
             loc: false,
-            readableTokensMode: true
+            readableTokensMode: true,
+            includeCommentsAsNormalTokens: true
         };
 
         public constructor(
-            private charStream: ICharacterStream, 
+            private charStream: ICharacterStream,
             private exceptionHandler: utilities.IExceptionHandler,
             private options?: ILexerOptions
         ) {
             this.options = _.defaults(
-                    _.clone(options || {}), 
-                    Lexer.defaultLexerOptions
-                );            
+                _.clone(options || {}),
+                Lexer.defaultLexerOptions
+            );
             this.lineno = 1;
             this.currLineCursor = 0;
-            
+            this.comments = [];
+
             Lexer.initiateCharecterLookupOnce();
         }
 
         public isError(token: IToken): boolean {
-            return this.options.readableTokensMode ? 
+            return this.options.readableTokensMode ?
                 token.type === ReadableTokenType.error : token.type === TokenType.error;
         }
         public isEof(token: IToken): boolean {
-            return this.options.readableTokensMode ? 
+            return this.options.readableTokensMode ?
                 token.type === ReadableTokenType.eof : token.type === TokenType.eof;
         }
+        public isComment(token: IToken): boolean {
+            return this.options.readableTokensMode ?
+                token.type === ReadableTokenType.comment : token.type === TokenType.comment;
+        }
         public isLiteral(token: IToken): boolean {
-            return this.options.readableTokensMode ? 
+            return this.options.readableTokensMode ?
                 token.type === ReadableTokenType.literal : token.type === TokenType.literal;
         }
         public isPunctuation(token: IToken): boolean {
-            return this.options.readableTokensMode ? 
+            return this.options.readableTokensMode ?
                 token.type === ReadableTokenType.punctuation : token.type === TokenType.punctuation;
         }
         public isKeyword(token: IToken): boolean {
-            return this.options.readableTokensMode ? 
+            return this.options.readableTokensMode ?
                 token.type === ReadableTokenType.keyword : token.type === TokenType.keyword;
         }
         public isIdentifier(token: IToken): boolean {
-            return this.options.readableTokensMode ? 
+            return this.options.readableTokensMode ?
                 token.type === ReadableTokenType.identifier : token.type === TokenType.identifier;
         }
 
@@ -225,7 +232,7 @@ module trl.frontend.lexical {
             if (this.isPunctuationValue(token, value)) {
                 this.nextToken();
                 return true;
-            } 
+            }
             return false;
         }
 
@@ -234,7 +241,7 @@ module trl.frontend.lexical {
             if (this.isKeywordValue(token, value)) {
                 this.nextToken();
                 return true;
-            } 
+            }
             return false;
         }
 
@@ -244,11 +251,29 @@ module trl.frontend.lexical {
                 this.lookAheadToken = undefined;
                 return this.currentToken = lookAheadToken;
             }
+
+            let nextToken = this.beginStates();
+            if (this.isComment(nextToken)) {
+                if (this.options.includeCommentsAsNormalTokens) {
+                    this.comments.push(nextToken);
+                } else {
+                    do {
+                        this.comments.push(nextToken);
+                        nextToken = this.beginStates();
+                    } while (this.isComment(nextToken));
+                }
+            }
+
+
+            return nextToken;
+        }
+
+        private beginStates(): IToken {
             let nextState = this.stateInit();
             while (nextState) {
                 nextState = this[nextState].call(this);
             }
-            if(!this.token) {
+            if (!this.token) {
                 this.token = this.createToken(TokenType.error, undefined);
             }
             if (this.options.readableTokensMode && this.token) {
@@ -259,7 +284,7 @@ module trl.frontend.lexical {
             }
             return this.currentToken = this.token;
         }
-        
+
         public latestToken(): IToken {
             return this.currentToken;
         }
@@ -267,13 +292,18 @@ module trl.frontend.lexical {
         public lookAheadNextToken(): IToken {
             const currentToken = this.currentToken;
             this.lookAheadToken = this.nextToken();
+
             this.currentToken = currentToken;
             return this.lookAheadToken;
         }
-        
+
         public hasNext(): boolean {
             const token = this.lookAheadNextToken();
             return !this.isEof(token) && !this.isError(token);
+        }
+
+        public getComments(): IToken[] {
+            return this.comments;
         }
 
         public getCurrentCursorPos(): ITokenPosition {
@@ -303,7 +333,7 @@ module trl.frontend.lexical {
             this.relativeStartCursor = this.charStream.getCursor() - this.currLineCursor;
             this.absoluteStartCursor = this.charStream.getCursor();
 
-            if(this.charStream.isEof()) {
+            if (this.charStream.isEof()) {
                 this.token = this.createToken(TokenType.eof, undefined);
                 return States.finish;
             }
@@ -499,8 +529,11 @@ module trl.frontend.lexical {
         }
 
         private stateLineTerminator(): string {
-            this.charStream.fwdCursor();
-            this.charStream.matchComplex(char => char === PNC.lf || char === undefined);
+            const char = this.charStream.getNextChar();
+            this.charStream.matchComplex(nextchar => 
+                (char === PNC.cr && nextchar === PNC.lf) 
+                || nextchar === undefined
+            );
             this.handleNewLine();
             return States.init;
         }
@@ -704,21 +737,16 @@ module trl.frontend.lexical {
         }
 
         private createTokenFromPos(type: string | TokenType, subType?: string): IToken {
-            return {
-                type: type,
-                value: this.charStream.tokenize(this.absoluteStartCursor),
-                subType: subType,
-                loc: this.createPos()
-            };
+            const value = this.charStream.tokenize(this.absoluteStartCursor);
+            return this.createToken(type, value, subType);
         }
 
         private createToken(type: string | TokenType, value: any, subType?: string | LiteralSubType): IToken {
-            return {
-                type: type,
-                value: value,
-                subType: subType,
-                loc: this.createPos()
-            };
+            const token: IToken = { type, value, subType };
+            if (this.options.loc) {
+                token.loc = this.createPos();
+            }
+            return token;
         }
 		
         //////////////Lex object creators/////////////////

@@ -15,7 +15,7 @@ module trl.frontend.lexical {
 		
 		static LT = {
 			0x000A: t,
-			0x000D: t,
+			0x000D: t, //cr
 			0x2028: t,
 			0x202: t
 		};
@@ -118,7 +118,8 @@ module trl.frontend.lexical {
 			x: 120,
 			u: 117,
 			
-			lf: 0x000A
+			lf: 0x000A,
+            cr: 0x000D
 		};		
 		
 		

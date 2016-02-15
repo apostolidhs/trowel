@@ -38,10 +38,11 @@ module trl.frontend.lexical {
     export interface ILexerOptions {
         loc?: boolean;
         readableTokensMode?: boolean;
+        includeCommentsAsNormalTokens?: boolean;
     }
 
     export interface ILexer {
-        //get next token
+        // get next token
         nextToken(): IToken;
         
         // check if there is next token
@@ -59,6 +60,9 @@ module trl.frontend.lexical {
         
         // check if the argument is type of end of file type
         isEof(token: IToken): boolean;
+        
+        // check if the argument is type of comment type
+        isComment(token: IToken): boolean;        
         
         // check if the argument is type of literan type
         isLiteral(token: IToken): boolean;
@@ -91,6 +95,10 @@ module trl.frontend.lexical {
         // consume the next token if its type is keyword
         // and is equal with the specific value
         matchKeyword(value: string);
+        
+        // returns all the comments that have been 
+        // collected since the current execution 
+        getComments(): IToken[];
         
         // returns the current position of cursor is the source stream
         getCurrentCursorPos(): ITokenPosition;

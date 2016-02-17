@@ -13,7 +13,7 @@ module trl.frontend.syntax {
 
     export interface IFunction extends INode {
         id: IIdentifier;
-        params: string[];
+        params: IIdentifier[];
         body: IBlockStatement;
     }
 
@@ -43,6 +43,11 @@ module trl.frontend.syntax {
         label: IIdentifier;
     }
 
+    export interface IWithStatement extends IStatement {
+        obj: IExpression;
+        body: IStatement;
+    }
+
     export interface ISwitchStatement extends IStatement {
         discriminant: IExpression;
         cases: ISwitchCase[];
@@ -51,6 +56,11 @@ module trl.frontend.syntax {
     export interface IReturnStatement extends IStatement {
         argument: IExpression;
     }
+    
+    export interface ILabeledStatement extends IStatement {
+        label: IIdentifier;
+        body: IStatement;
+    }    
 
     export interface IThrowStatement extends IStatement {
         argument: IExpression;
@@ -184,7 +194,7 @@ module trl.frontend.syntax {
     }
 
     export interface ICatchClause extends INode {
-        param: string;
+        param: IIdentifier;
         body: IBlockStatement;
     }
 
@@ -197,67 +207,5 @@ module trl.frontend.syntax {
     }
     
     export interface IRegExp { }
-
-    // const t = true;
-
-    // export const IUnaryOperator = {
-    //     "-": t,
-    //     "+": t,
-    //     "!": t,
-    //     "~": t,
-    //     "typeof": t,
-    //     "void": t,
-    //     "delete": t
-    // };
-
-    // export const IBinaryOperator = {
-    //     "==": t,
-    //     "!=": t,
-    //     "===": t,
-    //     "!==": t,
-    //     "<": t,
-    //     "<=": t,
-    //     ">": t,
-    //     ">=": t,
-    //     "<<": t,
-    //     ">>": t,
-    //     ">>>": t,
-    //     "+": t,
-    //     "-": t,
-    //     "*": t,
-    //     "/": t,
-    //     "%": t,
-    //     "|": t,
-    //     "^": t,
-    //     "&": t,
-    //     "in": t,
-    //     "instanceof": t,
-    //     "..": t
-    // };
-
-    // export const ILogicalOperator = {
-    //     "||": t,
-    //     "&&": t
-    // };
-
-    // export const IAssignmentOperator = {
-    //     "=": t,
-    //     "+=": t,
-    //     "-=": t,
-    //     "*=": t,
-    //     "/=": t,
-    //     "%=": t,
-    //     "<<=": t,
-    //     ">>=": t,
-    //     ">>>=": t,
-    //     "|=": t,
-    //     "^=": t,
-    //     "&=": t
-    // };
-
-    // export const IUpdateOperator = {
-    //     "++": t,
-    //     "--": t
-    // };
-    
+   
 }

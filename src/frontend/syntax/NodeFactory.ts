@@ -63,6 +63,14 @@ module trl.frontend.syntax {
             }, loc); 
         }
         
+        public createStatementWith(obj: IExpression, body: IStatement, loc?: lexical.ITokenSourceLocation): IWithStatement {
+            return this.createNode({
+                type: "WithStatement",                
+                obj,
+                body
+            }, loc); 
+        }        
+        
         public createStatementSwitch(discriminant: IExpression, cases: ISwitchCase[], loc?: lexical.ITokenSourceLocation): ISwitchStatement {
             return this.createNode({
                 type: "SwitchStatement",                
@@ -77,6 +85,14 @@ module trl.frontend.syntax {
                 argument
             }, loc);
         }
+        
+        public createStatementLabeled(label: IIdentifier, body: IStatement, loc?: lexical.ITokenSourceLocation): ILabeledStatement {
+            return this.createNode({
+                type: "LabeledStatement",                
+                label,
+                body
+            }, loc);
+        }        
         
         public createStatementThrow(argument: IExpression, loc?: lexical.ITokenSourceLocation): IThrowStatement {
             return this.createNode({
@@ -137,7 +153,7 @@ module trl.frontend.syntax {
             }, loc);
         }
         
-        public createDeclarationFunction(id: IIdentifier, params: string[], body: IBlockStatement, declarations: IVariableDeclarator[], loc?: lexical.ITokenSourceLocation): IFunctionDeclaration {
+        public createDeclarationFunction(id: IIdentifier, params: IIdentifier[], body: IBlockStatement, loc?: lexical.ITokenSourceLocation): IFunctionDeclaration {
             return this.createNode({
                 type: "FunctionDeclaration",                
                 id,
@@ -192,7 +208,7 @@ module trl.frontend.syntax {
             }, loc);
         }
         
-        public createExpressionFunction(id: IIdentifier, params: string[], body: IBlockStatement, loc?: lexical.ITokenSourceLocation): IFunctionExpression {
+        public createExpressionFunction(id: IIdentifier, params: IIdentifier[], body: IBlockStatement, loc?: lexical.ITokenSourceLocation): IFunctionExpression {
             return this.createNode({
                 type: "FunctionExpression",                
                 id,
@@ -295,7 +311,7 @@ module trl.frontend.syntax {
             }, loc);
         }
         
-        public createCatchClause(param: string, body: IBlockStatement, loc?: lexical.ITokenSourceLocation): ICatchClause {
+        public createCatchClause(param: IIdentifier, body: IBlockStatement, loc?: lexical.ITokenSourceLocation): ICatchClause {
             return this.createNode({
                 type: "CatchClause",                
                 param,

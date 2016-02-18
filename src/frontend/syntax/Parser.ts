@@ -1,5 +1,6 @@
 /// <reference path="../../../tsDefinitions/tsd.d.ts" />
 /// <reference path="../lexical/Lexer.ts" />
+/// <reference path="../utilities/Assertion.ts" />
 /// <reference path="../utilities/Exception.ts" />
 /// <reference path="../lexical/CharacterStream.ts" />
 /// <reference path="../lexical/TokenDefinitions.ts" />
@@ -17,6 +18,10 @@ module trl.frontend.syntax {
         private lexException: utilities.IExceptionHandler;
         private lex: lexical.ILexer;
 
+        private inLoopMutex: number[];
+        private inSwitchMutex: number[];
+        private inFunctionMutex: number;
+        
         private static defaultParserOptions: IParserOptions = {
             loc: false
         };
@@ -40,6 +45,10 @@ module trl.frontend.syntax {
                 includeCommentsAsNormalTokens: false
             };
             this.lex = new lexical.Lexer(this.charStream, this.lexException, lexOptions);
+
+            this.inLoopMutex = [0];            
+            this.inSwitchMutex = [0];
+            this.inFunctionMutex = 0;
         }
 
         private addException(token: lexical.IToken) {
@@ -55,12 +64,69 @@ module trl.frontend.syntax {
             const token = this.lex.lookAheadNextToken();
             if (this.lex.isPunctuationValue(token, ";")) {
                 this.lex.nextToken();
-            } else if (this.tokenIsInSameLine(token) && !this.lex.isEof(token)) {
+            } else if (this.tokenIsInSameLine(token) && !this.lex.isEof(token) && !this.lex.isPunctuationValue(token, "}")) {
                 this.addException(token);
                 return false;
             }
             return true;
         }
+
+        //iteration mutex
+        private beginIteration() {
+            ++this.inLoopMutex[this.inLoopMutex.length - 1];
+        }
+
+        private finishIteration() {
+            --this.inLoopMutex[this.inLoopMutex.length - 1];
+        }
+
+        private newIterationScope() {
+            this.inLoopMutex.push(0);
+        }
+
+        private restoreIterationScope() {
+            const currIterationMutex = this.inLoopMutex.pop();
+            utilities.assert(currIterationMutex === 0);
+        }
+
+        private isOnIteration(): boolean {
+            return this.inLoopMutex[this.inLoopMutex.length - 1] > 0;
+        }
+
+        //switch mutex
+        private beginSwitch() {
+            ++this.inSwitchMutex[this.inSwitchMutex.length - 1];
+        }
+
+        private finishSwitch() {
+            --this.inSwitchMutex[this.inSwitchMutex.length - 1];
+        }
+        
+        private newSwitchScope() {
+            this.inSwitchMutex.push(0);
+        }
+
+        private restoreSwitchScope() {
+            const currSwitchMutex = this.inSwitchMutex.pop();
+            utilities.assert(currSwitchMutex === 0);
+        }         
+
+        private isOnSwitch(): boolean {
+            return this.inSwitchMutex[this.inSwitchMutex.length - 1] > 0;
+        }
+        
+        //function mutex
+        private beginFunction() {
+            ++this.inFunctionMutex;
+        }
+
+        private finishFunction() {
+            --this.inFunctionMutex;
+        }       
+
+        private isOnFunction(): boolean {
+            return this.inFunctionMutex > 0;
+        }        
 
         private trackPositionUnary(token: lexical.IToken): lexical.ITokenSourceLocation {
             return token.loc;
@@ -123,14 +189,6 @@ module trl.frontend.syntax {
             return stmts;
         }
 
-        public parseSourceElement(): IStatement {
-            const token = this.lex.lookAheadNextToken();
-            if (this.lex.isKeywordValue(token, "function")) {
-                return this.parseFunctionDeclaration();
-            }
-            return this.parseStatement();
-        }
-
         public parseStatement(): IStatement {
             const token = this.lex.lookAheadNextToken();
             if (this.lex.isKeyword(token)) {
@@ -142,23 +200,42 @@ module trl.frontend.syntax {
                     case "while":
                         return this.parseWhileStatement();
                     case "do":
-                        return this.parseDoWhileStatement();    
+                        return this.parseDoWhileStatement();
                     case "for":
-                        return this.parseForStatement();                                              
+                        return this.parseForStatement();
+                    case "continue":
+                        return this.parseContinueStatement();
+                    case "break":
+                        return this.parseBreakStatement();
+                    case "with":
+                        return this.parseWithStatement();
+                    case "switch":
+                        return this.parseSwitchStatement();
+                    case "throw":
+                        return this.parseThrowStatement();
+                    case "try":
+                        return this.parseTryStatement();
+                    case "try":
+                        return this.parseDebuggerStatement();
+                    case "function":
+                        return this.parseFunction(true);
+                    case "return":
+                        return this.parseReturnStatement();
                 }
-            }
-            if (this.lex.isPunctuation(token)) {
+            } else if (this.lex.isPunctuation(token)) {
                 switch (token.value) {
                     case "{":
                         return this.parseBlockStatement();
                     case ";":
                         return this.parseEmptyStatement();
                 }
+            } else if (this.lex.isIdentifier(token)) {
+                return this.parseLabeledStatement();
             }
             return this.parseExpressionStatement();
         }
 
-        public parseBlockStatement(): IStatement {
+        public parseBlockStatement(): IBlockStatement {
             const initialToken = this.lex.lookAheadNextToken();
             if (!this.expectPunctuation("{")) return;
 
@@ -204,22 +281,34 @@ module trl.frontend.syntax {
             return this.nodeFactory.createStatementIf(testExpr, consStmt, altStmt, this.trackPositionByToken(initialToken));
         }
 
-        public parseWhileStatement(): IStatement {
+        private parseIteration(parseFunc: () => INode): IStatement {
+            this.beginIteration();
+            const stmt = parseFunc.apply(this);
+            this.finishIteration();
+            return stmt;
+        }
+
+        private innerParseWhileStatement(): IStatement {
+            this.beginIteration();
             const initialToken = this.lex.lookAheadNextToken();
             const testExpr = this.parseKeywordLparExpressionRpar("while");
             if (!testExpr) return;
 
 
             const stmt = this.parseStatement();
+            this.finishIteration();
             if (stmt) {
                 return this.nodeFactory.createStatementWhile(testExpr, stmt, this.trackPositionByToken(initialToken));
             }
         }
 
-        public parseDoWhileStatement(): IStatement {
+        public parseWhileStatement(): IStatement {
+            return this.parseIteration(this.innerParseWhileStatement);
+        }
+
+        public innerParseDoWhileStatement(): IStatement {
             const initialToken = this.lex.lookAheadNextToken();
             if (!this.expectKeyword("do")) return;
-
 
             const stmt = this.parseStatement();
             if (!stmt) return;
@@ -227,16 +316,18 @@ module trl.frontend.syntax {
             const testExpr = this.parseKeywordLparExpressionRpar("while");
             if (!testExpr) return;
 
-
             this.lex.matchPunctuation(";");
 
             return this.nodeFactory.createStatementDoWhile(stmt, testExpr, this.trackPositionByToken(initialToken));
         }
 
-        public parseForStatement(): IStatement {
+        public parseDoWhileStatement(): IStatement {
+            return this.parseIteration(this.innerParseDoWhileStatement);
+        }
+
+        private innerParseForStatement(): IStatement {
             const initialToken = this.lex.lookAheadNextToken();
             if (!(this.expectKeyword("for") && this.expectPunctuation("("))) return;
-
 
             let initDecl: IVariableDeclaration = null,
                 declarations: IVariableDeclarator[],
@@ -251,7 +342,7 @@ module trl.frontend.syntax {
                 } else {
                     initExpr = this.parseExpression();
                     if (!initExpr) return;
-                }                
+                }
             }
 
             let isForIn = false,
@@ -274,7 +365,6 @@ module trl.frontend.syntax {
             } else {
                 if (!this.expectPunctuation(";")) return;
 
-                
                 token = this.lex.lookAheadNextToken();
                 if (!this.lex.isPunctuationValue(token, ";")) {
                     test = this.parseExpression();
@@ -282,7 +372,6 @@ module trl.frontend.syntax {
                 }
 
                 if (!this.expectPunctuation(";")) return;
-
             }
 
             let update = null;
@@ -290,7 +379,6 @@ module trl.frontend.syntax {
             if (!this.lex.isPunctuationValue(token, ")")) {
                 update = this.parseExpression();
                 if (!update) return;
-
             }
 
             if (isForIn && !update) {
@@ -300,10 +388,8 @@ module trl.frontend.syntax {
 
             if (!this.expectPunctuation(")")) return;
 
-
             const body = this.parseStatement();
             if (!body) return;
-
 
             const pos = this.trackPositionByToken(initialToken);
             const init = initExpr || initDecl;
@@ -314,9 +400,223 @@ module trl.frontend.syntax {
             }
         }
 
+        public parseForStatement(): IStatement {
+            return this.parseIteration(this.innerParseForStatement);
+        }
+
+        private parseKeywordNodeSemicolon(keyword: string, parseFunc: () => INode, nodeFactoryFunc: (iten: INode, loc?: lexical.ITokenSourceLocation) => INode): INode {
+            const initialToken = this.lex.lookAheadNextToken();
+            if (!this.expectKeyword(keyword)) return;
+
+            const token = this.lex.lookAheadNextToken();
+            let item: INode = null;
+            if (this.lex.isIdentifier(token) && this.tokenIsInSameLine(token)) {
+                item = parseFunc.call(this);
+                if (!item)  return;
+            }
+            if (!this.trimOptionalSemicolon()) return;
+            return nodeFactoryFunc.call(this.nodeFactory, item, this.trackPositionByToken(initialToken));
+        }
+
+        public parseContinueStatement(): IExpression {
+            const stmt = this.parseKeywordNodeSemicolon("continue", this.parseIdentifier, this.nodeFactory.createStatementContinue);
+            if (this.isOnIteration()) {
+                return stmt;
+            }
+            this.parseException.addException(
+                `Illegal continue statement`,
+                stmt.loc.start.line,
+                stmt.loc.start.column
+            );
+        }
+
+        public parseBreakStatement(): IExpression {
+            const stmt = this.parseKeywordNodeSemicolon("break", this.parseIdentifier, this.nodeFactory.createStatementBreak);
+            if (this.isOnIteration() || this.isOnSwitch()) {
+                return stmt;
+            }
+            this.parseException.addException(
+                `Illegal break statement`,
+                stmt.loc.start.line,
+                stmt.loc.start.column
+            );
+        }
+
+        public parseReturnStatement(): IExpression {
+            const stmt = this.parseKeywordNodeSemicolon("return", this.parseExpression, this.nodeFactory.createStatementReturn);
+            if (this.isOnFunction()) {
+                return stmt;
+            }
+            this.parseException.addException(
+                `Illegal return statement`,
+                stmt.loc.start.line,
+                stmt.loc.start.column
+            );
+        }
+
+        public parseWithStatement(): IExpression {
+            const initialToken = this.lex.lookAheadNextToken();
+            const expr = this.parseKeywordLparExpressionRpar("with");
+            if (!expr) return;
+
+            const stmt = this.parseStatement();
+            if (!stmt) return;
+
+            return this.nodeFactory.createStatementWith(expr, stmt, this.trackPositionByToken(initialToken));
+        }
+
+        private parseCaseClauseStatements(expectDefault: boolean): IStatement[] {
+            if (!this.expectPunctuation(":")) return;
+
+            const stmts: IStatement[] = [];
+            while (true) {
+                const token = this.lex.lookAheadNextToken();
+                if (this.lex.isKeywordValue(token, "case")
+                    || this.lex.isPunctuationValue(token, "}")
+                    || (this.lex.isKeywordValue(token, "default") && expectDefault)
+                ) {
+                    break;
+                }
+                const stmt = this.parseStatement();
+                if (!stmt) return;
+
+                stmts.push(stmt);
+            }
+            return stmts;
+        }
+
+        private parseCasesClause(cases: ISwitchCase[], expectDefault: boolean) {
+            let token = this.lex.lookAheadNextToken();
+            while (this.lex.isKeywordValue(token, "case")) {
+                this.lex.nextToken();
+                const expr = this.parseExpression();
+                if (!expr) return false;
+
+                const stmts = this.parseCaseClauseStatements(expectDefault);
+                if (!stmts) return false;
+
+                const switchCase = this.nodeFactory.createSwitchCase(expr, stmts, this.trackPositionByToken(token));
+                cases.push(switchCase);
+                token = this.lex.lookAheadNextToken();
+            }
+            return true;
+        }
+
+        private innerParseSwitchStatement(): IStatement {
+            const initialToken = this.lex.lookAheadNextToken();
+            const expr = this.parseKeywordLparExpressionRpar("switch");
+            if (!expr) return;
+
+            if (!this.expectPunctuation("{")) return;
+
+            let cases: ISwitchCase[] = [];
+            let token = this.lex.lookAheadNextToken();
+
+            if (this.lex.isKeywordValue(token, "case")) {
+                if (!this.parseCasesClause(cases, true)) return;
+
+                token = this.lex.lookAheadNextToken();
+            }
+
+            if (this.lex.isKeywordValue(token, "default")) {
+                this.lex.nextToken();
+                const stmts = this.parseCaseClauseStatements(false);
+                if (!stmts) return;
+
+                const defaultCase = this.nodeFactory.createSwitchCase(null, stmts, this.trackPositionByToken(token));
+                cases.push(defaultCase);
+
+                token = this.lex.lookAheadNextToken();
+            }
+
+            if (this.lex.isKeywordValue(token, "case")) {
+                if (!this.parseCasesClause(cases, false)) return;
+            }
+
+            if (!this.expectPunctuation("}")) return;
+            return this.nodeFactory.createStatementSwitch(expr, cases, this.trackPositionByToken(initialToken));
+        }
+
+        public parseSwitchStatement(): IStatement {
+            this.beginSwitch();
+            const stmt = this.innerParseSwitchStatement();
+            this.finishSwitch();
+            return stmt;
+        }
+
+        public parseThrowStatement(): IStatement {
+            const initialToken = this.lex.lookAheadNextToken();
+            if (!this.expectKeyword("throw")) return;
+
+            const token = this.lex.lookAheadNextToken();
+            if (initialToken.loc.start.line !== token.loc.start.line) {
+                this.parseException.addException(
+                    `Illegal newline after throw`,
+                    initialToken.loc.start.line,
+                    initialToken.loc.start.column
+                );
+                return;
+            }
+
+            const expr = this.parseExpression();
+            if (!expr) return;
+
+            if (!this.trimOptionalSemicolon()) return;
+            return this.nodeFactory.createStatementThrow(expr, this.trackPositionByToken(initialToken));
+        }
+
+        public parseTryStatement(): IStatement {
+            const initialToken = this.lex.lookAheadNextToken();
+            if (!this.expectKeyword("try")) return;
+
+            const stmt = this.parseBlockStatement();
+            if (!stmt) return;
+
+            let token = this.lex.lookAheadNextToken();
+            let catchClause: ICatchClause = null;
+            if (this.lex.isKeywordValue(token, "catch")) {
+                const catchId = this.parseKeywordLparExpressionRpar("catch");
+                if (!(catchId && catchId.type === "Identifier")) return;
+
+                const stmt = this.parseBlockStatement();
+                if (!stmt) return;
+
+                catchClause = this.nodeFactory.createCatchClause((catchId as IIdentifier), stmt, this.trackPositionByToken(token));
+            }
+
+            let finalizer: IBlockStatement = null;
+            if (this.lex.matchKeyword("finally")) {
+                finalizer = this.parseBlockStatement();
+                if (!finalizer) return;
+            }
+
+            return this.nodeFactory.createStatementTry(stmt, catchClause, finalizer, this.trackPositionByToken(initialToken));
+        }
+
+        public parseDebuggerStatement(): IStatement {
+            const initialToken = this.lex.lookAheadNextToken();
+            if (!(this.expectKeyword("debugger") && this.trimOptionalSemicolon())) return;
+            return this.nodeFactory.createStatementDebugger(this.trackPositionByToken(initialToken));
+        }
+
+        public parseLabeledStatement(): IStatement {
+            const initialToken = this.lex.lookAheadNextToken();
+            const expr = this.parseExpression();
+            if (!expr) return;
+
+            if (expr.type === "Identifier" && this.lex.matchPunctuation(":")) {
+                const stmt = this.parseStatement();
+                if (!stmt) return;
+                return this.nodeFactory.createStatementLabeled(expr as IIdentifier, stmt, this.trackPositionByToken(initialToken));
+            }
+            // parse like a normal expression statement
+            if (!this.trimOptionalSemicolon()) return;
+
+            return this.nodeFactory.createStatementExpression(expr, this.trackPositionByToken(initialToken));
+        }
+
         private parseKeywordLparExpressionRpar(keyword: string): IExpression {
             if (!(this.expectKeyword(keyword) && this.expectPunctuation("("))) return;
-
 
             const expr = this.parseExpression();
             if (expr && this.expectPunctuation(")")) {
@@ -372,17 +672,51 @@ module trl.frontend.syntax {
         public parseExpressionStatement(): IStatement {
             const initialToken = this.lex.lookAheadNextToken();
             const expr = this.parseExpression();
-            if (!expr) return;
-
-
-            if (!this.trimOptionalSemicolon()) return;
-
+            if (!(expr && this.trimOptionalSemicolon())) return;
 
             return this.nodeFactory.createStatementExpression(expr, this.trackPositionByToken(initialToken));
         }
 
-        public parseFunctionDeclaration(): IFunctionDeclaration {
-            throw new Error("not implemented yet");
+        public parseFunction(asDeclaration: boolean): IFunctionDeclaration | IFunctionExpression {
+            const initialToken = this.lex.lookAheadNextToken();
+            if (!this.expectKeyword("function")) return;
+
+            let token = this.lex.lookAheadNextToken();
+            let identifier: IIdentifier = null;
+            if (this.lex.isIdentifier(token)) {
+                this.lex.nextToken();
+                identifier = this.nodeFactory.createIdentifier(token.value, this.trackPositionUnary(token));
+            } else if (asDeclaration) {
+                this.addException(token);
+                return;
+            }
+
+            if (!this.expectPunctuation("(")) return;
+
+            const args: IIdentifier[] = [];
+            token = this.lex.lookAheadNextToken();
+            while (!this.lex.isPunctuationValue(token, ")")) {
+                if(!this.lex.isIdentifier(token)) {
+                    this.addException(token);
+                    return;
+                }
+                this.lex.nextToken();
+                const arg = this.nodeFactory.createIdentifier(token.value, this.trackPositionUnary(token));
+                args.push(arg);
+                this.lex.matchPunctuation(",");
+                token = this.lex.lookAheadNextToken();
+            }
+
+            if (!this.expectPunctuation(")")) return;
+
+            const body = this.parseFunctionBody();
+            if (!body) return;
+
+            if (asDeclaration) {
+                return this.nodeFactory.createDeclarationFunction(identifier, args, body, this.trackPositionByToken(initialToken));
+            } else {
+                return this.nodeFactory.createExpressionFunction(identifier, args, body, this.trackPositionByToken(initialToken));
+            }
         }
 
 
@@ -656,7 +990,7 @@ module trl.frontend.syntax {
             if (this.lex.isKeyword(initialToken)) {
                 switch (initialToken.value) {
                     case "function":
-                        return this.parseFunctionExpression();
+                        return this.parseFunction(false);
                     case "new":
                         primaryExpr = this.parseNewExpression();
                 }
@@ -884,11 +1218,12 @@ module trl.frontend.syntax {
                 return this.nodeFactory.createObjectProperty(propertyName, expr, kind, this.trackPositionByToken(initialToken));
 
             } else if (this.lex.isPunctuationValue(token, "(")) {
-                let args: string[] = [];
+                let args: IIdentifier[] = [];
                 token = this.lex.nextToken();
 
                 if (this.lex.isIdentifier(token)) {
-                    args.push(token.value);
+                    const arg = this.nodeFactory.createIdentifier(token.value, this.trackPositionUnary(token));
+                    args.push(arg);
                     if (!this.expectPunctuation(")")) return;
                 } else if (!this.lex.isPunctuationValue(token, ")")) {
                     this.addException(token);
@@ -926,12 +1261,18 @@ module trl.frontend.syntax {
             }
         }
 
-        public parseFunctionExpression(): IFunctionExpression {
-            throw new Error("not implemented yet");
-        }
-
         public parseFunctionBody(): IBlockStatement {
-            throw new Error("not implemented yet");
+            this.newSwitchScope();
+            this.newIterationScope();
+            this.beginFunction();
+            
+            const stmt = this.parseBlockStatement();
+            
+            this.finishFunction();
+            this.restoreSwitchScope();
+            this.restoreIterationScope();
+            
+            return stmt;
         }
     }
 }

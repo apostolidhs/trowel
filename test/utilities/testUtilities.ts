@@ -18,32 +18,38 @@ module trl.test {
 			expect(expectVal).toEqual(tobeVal);
 		}
         
-        private static expectJsonValueEquality(expectVal, tobeVal) {
+        private static expectJsonValueEquality(expectVal, tobeVal, msg: string) {
             if(_.isObject(expectVal)) {
-                Utilities.expectToEqual(_.isObject(tobeVal), true, "objects");                
-                Utilities.expectJsonObjectEquality(expectVal, tobeVal);
+                Utilities.expectToEqual(_.isObject(tobeVal), true, `${msg} objects`);                
+                Utilities.expectJsonObjectEquality(expectVal, tobeVal, msg);
                 
             } else if(_.isArray(expectVal)) {
-                Utilities.expectToEqual(_.isArray(tobeVal), true, "expect is not array");
-                Utilities.expectToEqual(tobeVal.length, expectVal.length, "arrays dont contain the same items");
-                _.each(expectVal, (item, idx) => Utilities.expectJsonValueEquality(item, tobeVal[idx]));
+                Utilities.expectToEqual(_.isArray(tobeVal), true, `${msg} expect is not array`);
+                Utilities.expectToEqual(tobeVal.length, expectVal.length, `${msg} arrays dont contain the same items`);
+                _.each(expectVal, (item, idx) => Utilities.expectJsonValueEquality(item, tobeVal[idx], msg));
                 
             } else {
                 Utilities.expectToEqual(
                     _.isString(tobeVal) || _.isNumber(tobeVal) || _.isBoolean(tobeVal) || _.isNull(tobeVal), 
                     true, 
-                    "value should be one of number, string, null, boolean, array, object"
+                    `${msg} value should be one of number, string, null, boolean, array, object`
                 );
-                Utilities.expectToEqual(expectVal, tobeVal, "values");
+                Utilities.expectToEqual(expectVal, tobeVal, `${msg} values`);
             }
         }
         
-        public static expectJsonObjectEquality(expectObj, tobeObj) {
-            Utilities.expectToEqual(_.keys(expectObj).length, _.keys(tobeObj).length, "objects");
+        public static expectJsonObjectEquality(expectObj, tobeObj, msg: string) {
+            Utilities.expectToEqual(_.keys(expectObj).length, _.keys(tobeObj).length, `${msg} objects`);
             _.each(expectObj, (val, key: string) => {                                
-                Utilities.expectJsonValueEquality(val, tobeObj[key]);
+                Utilities.expectJsonValueEquality(val, tobeObj[key], msg);
             });
         }
+        
+        public static expectJsonEquality(expectObj, testExpectation: ITestExpectation) {
+            const tobeObj = testExpectation.expect;
+            const msg = `${testExpectation.file}: `;
+            Utilities.expectJsonObjectEquality(expectObj, tobeObj, msg);
+        }        
 		
 		public static getSampleFiles(allFiles: _.Dictionary<string>, sampleFiles: string[]): _.Dictionary<string> {
 			

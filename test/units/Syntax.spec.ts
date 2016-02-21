@@ -2,7 +2,7 @@
 
 describe('parse js source text', function() {
     
-    it('every token in the lexer read properly', function() {
+    it('every node in the source should read properly', function() {
         const testingExpects = trl.test.Utilities.getTestingExpects((<any>window).__html__, ["/syntax"]);
 
         _.each(testingExpects, testingExpect => {
@@ -12,9 +12,9 @@ describe('parse js source text', function() {
             // const stringifiedParseNodes = JSON.stringify(parseNodes);
             // const stringifiedExpectedNodes = JSON.stringify(testingExpect.expect);
             
-            trl.test.Utilities.expectJsonObjectEquality(
+            trl.test.Utilities.expectJsonEquality(
                 parseNodes, 
-                testingExpect.expect
+                testingExpect
             );
         });  
         

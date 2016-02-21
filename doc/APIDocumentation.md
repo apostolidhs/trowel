@@ -3,14 +3,6 @@
 ### Basic Data Structures
 
 ```javascript
-interface IException {
-    pos: {
-        col: number,
-        line: number
-    },
-    msg: string
-}
-
 interface ITokenPosition  {
     line: number;
     column: number;
@@ -28,6 +20,8 @@ interface ILexerOptions {
     
     //token type represention as string or as enumerated number
     readableTokensMode?: boolean; //default: true
+    
+    includeCommentsAsNormalTokens?: boolean; //default: true
 }     
             
 interface IToken {
@@ -42,9 +36,189 @@ interface ITokenizeResult {
     exceptions?: lexical.IException[]
 }
 
+export interface IParserOptions {
+    loc?: boolean;
+    tolerateErrors?: boolean;
+}   
+
+interface IParserResult {
+    program: any,
+    exceptions?: utilities.IException[]
+}  
+
+interface ExceptionHandler {
+    new();
+    addException(msg: string, line: number, col: number): void;
+    hasExceptions(): boolean;
+    clear(): void;
+    getExceptions(): IException[];
+}
+
+interface IException {
+    pos: {
+        col: number,
+        line: number
+    },
+    msg: string
+}
 ```
 
 ### Functions
+
+
+#### Simple Parsing
+
+```javascript
+trowel.frontend.api.parse(src: string, options?: IParserOptions): IParserResult;
+```
+
+Takes as argument an Ecmascript5 source code string and yields an Object that contains: 
+
+1. program: The ast of the source code as defined in [MDN](https://developer.mozilla.org/en-US/docs/Mozilla/Projects/SpiderMonkey/Parser_API)
+2. exceptions: array of exceptions, in case of parse errors 
+
+```javascript
+var programNode = trowel.frontend.api.parse("HelloWorld = true", { loc: true });
+console.log(JSON.stringify(programNode, undefined, 4));
+
+{
+    "program": {
+        "type": "Program",
+        "body": [
+            {
+                "type": "ExpressionStatement",
+                "expression": {
+                    "type": "AssignmentExpression",
+                    "operator": "=",
+                    "left": {
+                        "type": "Identifier",
+                        "name": "HelloWorld",
+                        "loc": {
+                            "start": {
+                                "line": 1,
+                                "column": 0
+                            },
+                            "end": {
+                                "line": 1,
+                                "column": 10
+                            }
+                        }
+                    },
+                    "right": {
+                        "type": "Literal",
+                        "value": true,
+                        "loc": {
+                            "start": {
+                                "line": 1,
+                                "column": 13
+                            },
+                            "end": {
+                                "line": 1,
+                                "column": 17
+                            }
+                        }
+                    },
+                    "loc": {
+                        "start": {
+                            "line": 1,
+                            "column": 0
+                        },
+                        "end": {
+                            "line": 1,
+                            "column": 17
+                        }
+                    }
+                },
+                "loc": {
+                    "start": {
+                        "line": 1,
+                        "column": 0
+                    },
+                    "end": {
+                        "line": 1,
+                        "column": 17
+                    }
+                }
+            }
+        ],
+        "loc": {
+            "start": {
+                "line": 1,
+                "column": 0
+            },
+            "end": {
+                "line": 1,
+                "column": 17
+            }
+        }
+    }
+}
+```
+
+#### Custom Tokenize
+
+```javascript
+export interface IParser {
+    new(chars: string, options?: IParserOptions);
+    
+    parse(): IProgram; // as defined in MDN
+    
+    getExceptions(): IExceptionHandler;
+}
+```
+
+```javascript
+var parser = new trl.frontend.syntax.Parser("foo;", {loc: true});
+var parseNodes = parser.parse();
+
+parser.getExceptions().hasExceptions() //false
+
+console.log(parseNodes)
+
+// console.log result:
+{
+    "type": "Program",
+    "body": [
+        {
+            "type": "ExpressionStatement",
+            "expression": {
+                "type": "Identifier",
+                "name": "foo",
+                "loc": {
+                    "start": {
+                        "line": 1,
+                        "column": 0
+                    },
+                    "end": {
+                        "line": 1,
+                        "column": 3
+                    }
+                }
+            },
+            "loc": {
+                "start": {
+                    "line": 1,
+                    "column": 0
+                },
+                "end": {
+                    "line": 1,
+                    "column": 4
+                }
+            }
+        }
+    ],
+    "loc": {
+        "start": {
+            "line": 1,
+            "column": 0
+        },
+        "end": {
+            "line": 1,
+            "column": 4
+        }
+    }
+}
+```
 
 #### Simple Tokenize
 
@@ -61,51 +235,51 @@ var tokens = trowel.frontend.api.tokenize("HelloWorld = true");
 console.log(JSON.stringify(tokens, undefined, 4));
 // result of console log:
 {
-	"tokens": [
-		{
-			"type": "identifier",
-			"value": "HelloWorld",
-			"loc": {
-				"start": {
-					"line": 1,
-					"column": 0
-				},
-				"end": {
-					"line": 1,
-					"column": 10
-				}
-			}
-		},
-		{
-			"type": "punctuation",
-			"value": "=",
-			"loc": {
-				"start": {
-					"line": 1,
-					"column": 11
-				},
-				"end": {
-					"line": 1,
-					"column": 12
-				}
-			}
-		},
-		{
-			"type": "literal",
-			"value": true,
-			"subType": "boolean",
-			"loc": {
-				"start": {
-					"line": 1,
-					"column": 13
-				},
-				"end": {
-					"line": 1,
-					"column": 17
-				}
-			}
-		}
-	]
+    "tokens": [
+        {
+            "type": "identifier",
+            "value": "HelloWorld",
+            "loc": {
+                "start": {
+                    "line": 1,
+                    "column": 0
+                },
+                "end": {
+                    "line": 1,
+                    "column": 10
+                }
+            }
+        },
+        {
+            "type": "punctuation",
+            "value": "=",
+            "loc": {
+                "start": {
+                    "line": 1,
+                    "column": 11
+                },
+                "end": {
+                    "line": 1,
+                    "column": 12
+                }
+            }
+        },
+        {
+            "type": "literal",
+            "value": true,
+            "subType": "boolean",
+            "loc": {
+                "start": {
+                    "line": 1,
+                    "column": 13
+                },
+                "end": {
+                    "line": 1,
+                    "column": 17
+                }
+            }
+        }
+    ]
 }
 ```
 
@@ -166,6 +340,10 @@ interface Lexer {
     // and is equal with the specific value
     matchKeyword(value: string);
     
+    // returns all the comments that have been 
+    // collected since the current execution 
+    getComments(): IToken[];    
+    
     // returns the current position of cursor is the source stream
     getCurrentCursorPos(): ITokenPosition;
 }
@@ -173,7 +351,7 @@ interface Lexer {
 interface CharacterStream {
     new(src: string);
     
-        // returns the current character
+    // returns the current character
     getChar(): number;
     
     // returns the next character
@@ -208,14 +386,6 @@ interface CharacterStream {
     // returns if the cursor has reach the end of the stream
     isEof(): boolean;
 }
-
-interface ExceptionHandler {
-    new();
-    addException(msg: string, line: number, col: number): void;
-    hasExceptions(): boolean;
-    clear(): void;
-    getExceptions(): IException[];
-}
 ```
 
 ```javascript
@@ -229,21 +399,21 @@ var token = lex.getNextToken();
 console.log(token)
 
 // console.log result:
-// {
-//     "type": "literal",
-//     "value": 100,
-//     "subType": "number",
-//     "loc": {
-//         "start": {
-//             "line": 1,
-//             "column": 0
-//         },
-//         "end": {
-//             "line": 1,
-//             "column": 3
-//         }
-//     }
-// }
+{
+    "type": "literal",
+    "value": 100,
+    "subType": "number",
+    "loc": {
+        "start": {
+            "line": 1,
+            "column": 0
+        },
+        "end": {
+            "line": 1,
+            "column": 3
+        }
+    }
+}
 
 cs.isEof() // true
 

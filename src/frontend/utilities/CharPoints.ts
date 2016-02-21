@@ -1,6 +1,9 @@
 /// <reference path="../../../tsDefinitions/tsd.d.ts" />
 
 module trl.frontend.utilities {
+    
+    // let's use our imagination
+    export type Ichar = number;
 	
 	export interface IStringFromCharPoint {
 		addCharPoint(char: number);
@@ -11,7 +14,7 @@ module trl.frontend.utilities {
 		static createStringFromCharPointGenerator(): IStringFromCharPoint {
 			let charBuffer: string[] = [];
 			return {
-				addCharPoint: (char: number) => {
+				addCharPoint: (char: Ichar) => {
 					charBuffer.push(CharPoints.fromCodePoint(char));
 				},
 				getString: (): string => {
@@ -21,15 +24,15 @@ module trl.frontend.utilities {
 		}
 		
 		private static ZERO_CHAR_CODE = "0".charCodeAt(0);
-		static getDigitFromCharPoint(c: number): number {
+		static getDigitFromCharPoint(c: Ichar): number {
 			return c - CharPoints.ZERO_CHAR_CODE;
 		}
 		
-		static codePointAt(str: string, pos: number): number {
+		static codePointAt(str: string, pos: number): Ichar {
 			return (<any>str).codePointAt(pos);
 		}
 		
-		static fromCodePoint(point: number): string {
+		static fromCodePoint(point: Ichar): string {
 			return (<any>String).fromCodePoint(point);
 		}
 	}

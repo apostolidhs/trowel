@@ -5,7 +5,7 @@
 module trl.frontend.lexical {
 	
 	export class CharacterStream implements ICharacterStream {
-		private cursor;
+		private cursor: number;
 
 		public constructor(private src: string) {
 			this.cursor = 0;

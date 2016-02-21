@@ -14,7 +14,8 @@ module trl.frontend.lexical {
         string = 1,
         number,
         null,
-        boolean
+        boolean,
+        regex
     };
     
     export interface ITokenPosition  {
@@ -44,6 +45,10 @@ module trl.frontend.lexical {
     export interface ILexer {
         // get next token
         nextToken(): IToken;
+        
+        // re parse the latest token (should begin with '/')
+        // as regular expression literal
+        reinterpretLastTokenAsRegex(token: IToken): IToken;
         
         // check if there is next token
         hasNext(): boolean;
@@ -90,11 +95,11 @@ module trl.frontend.lexical {
         
         // consume the next token if its type is punctuation
         // and is equal with the specific value
-        matchPunctuation(value: string);
+        matchPunctuation(value: string): boolean;
         
         // consume the next token if its type is keyword
         // and is equal with the specific value
-        matchKeyword(value: string);
+        matchKeyword(value: string): boolean;
         
         // returns all the comments that have been 
         // collected since the current execution 

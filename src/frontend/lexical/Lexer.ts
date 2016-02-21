@@ -33,31 +33,34 @@ module trl.frontend.lexical {
         string: "string",
         number: "number",
         null: "null",
-        boolean: "boolean"
+        boolean: "boolean",
+        regex: "regex"
     };
 
-    function toReadableTokenType(tokenType: TokenType): string {
-        switch (tokenType) {
-            case TokenType.keyword: return ReadableTokenType.keyword;
-            case TokenType.identifier: return ReadableTokenType.identifier;
-            case TokenType.literal: return ReadableTokenType.literal;
-            case TokenType.punctuation: return ReadableTokenType.punctuation;
-            case TokenType.comment: return ReadableTokenType.comment;
-            case TokenType.eof: return ReadableTokenType.eof;
-            case TokenType.error: return ReadableTokenType.error;
-        }
-        throw new Error("Unexpected token type");
-    }
 
-    function toReadableLiteralSubType(literalSubType: LiteralSubType): string {
-        switch (literalSubType) {
-            case LiteralSubType.string: return ReadableLiteralSubType.string;
-            case LiteralSubType.number: return ReadableLiteralSubType.number;
-            case LiteralSubType.null: return ReadableLiteralSubType.null;
-            case LiteralSubType.boolean: return ReadableLiteralSubType.boolean;
-        }
-        throw new Error("Unexpected token type");
-    }
+    const toReadableTokenType = (function() {
+        const toReadableTokenTypeLookup = {};
+        toReadableTokenTypeLookup[TokenType.keyword] = ReadableTokenType.keyword;
+        toReadableTokenTypeLookup[TokenType.identifier] = ReadableTokenType.identifier;
+        toReadableTokenTypeLookup[TokenType.literal] = ReadableTokenType.literal;
+        toReadableTokenTypeLookup[TokenType.punctuation] = ReadableTokenType.punctuation;
+        toReadableTokenTypeLookup[TokenType.comment] = ReadableTokenType.comment;
+        toReadableTokenTypeLookup[TokenType.eof] = ReadableTokenType.eof;
+        toReadableTokenTypeLookup[TokenType.error] = ReadableTokenType.error;
+
+        return (tokenType: TokenType): string => toReadableTokenTypeLookup[tokenType];
+    })();
+
+    const toReadableLiteralSubType = (function() {
+        const toReadableLiteralSubTypeLookup = {};
+        toReadableLiteralSubTypeLookup[LiteralSubType.string] = ReadableLiteralSubType.string;
+        toReadableLiteralSubTypeLookup[LiteralSubType.number] = ReadableLiteralSubType.number;
+        toReadableLiteralSubTypeLookup[LiteralSubType.null] = ReadableLiteralSubType.null;
+        toReadableLiteralSubTypeLookup[LiteralSubType.boolean] = ReadableLiteralSubType.boolean;
+        toReadableLiteralSubTypeLookup[LiteralSubType.regex] = ReadableLiteralSubType.regex;
+
+        return (literalSubType: LiteralSubType): string => toReadableLiteralSubTypeLookup[literalSubType];
+    })();
 
     const PNC = TokenDefinitions.PNC_SINGLE;
 
@@ -80,80 +83,111 @@ module trl.frontend.lexical {
             if (Lexer.CharecterLookup) {
                 return;
             }
-            let lookup = Lexer.CharecterLookup = {};
+            const lookup = Lexer.CharecterLookup = {};
 			
             //white space
-            _.each(<any>TokenDefinitions.WS, (val, key: number) => lookup[key] = Lexer.prototype.stateWhiteSpace);
+            _.each(<any>TokenDefinitions.WS, (val, key: number) =>
+                lookup[key] = Lexer.prototype.stateWhiteSpace);
 			
             //new line
-            _.each(<any>TokenDefinitions.LT, (val, key: number) => lookup[key] = Lexer.prototype.stateLineTerminator);
+            _.each(<any>TokenDefinitions.LT, (val, key: number) =>
+                lookup[key] = Lexer.prototype.stateLineTerminator);
 			
             //string
             lookup[PNC.qmark] = Lexer.genStateString(PNC.qmark);
             lookup[PNC.apostrophe] = Lexer.genStateString(PNC.apostrophe);
 			
             //number
-            _.each("0123456789", (numChar) => {
-                lookup[utilities.CharPoints.codePointAt(numChar, 0)] = Lexer.prototype.stateNumber;
-            });
+            _.each("0123456789", numChar =>
+                lookup[utilities.CharPoints.codePointAt(numChar, 0)] = Lexer.prototype.stateNumber);
 
+            // {
             lookup[PNC.lbrace] = Lexer.prototype.statePunctuationSingle;
+            
+            // }
             lookup[PNC.rbrace] = Lexer.prototype.statePunctuationSingle;
+            
+            // (
             lookup[PNC.lparenth] = Lexer.prototype.statePunctuationSingle;
+            
+            // )
             lookup[PNC.rparenth] = Lexer.prototype.statePunctuationSingle;
+            
+            // [
             lookup[PNC.lbracket] = Lexer.prototype.statePunctuationSingle;
+            
+            // ]
             lookup[PNC.rbracket] = Lexer.prototype.statePunctuationSingle;
 			
             // . .1
             lookup[PNC.dot] = () => States.dotOrNumber;
 
+            // :
             lookup[PNC.semicolon] = Lexer.prototype.statePunctuationSingle;
+            
+            // ,
             lookup[PNC.comma] = Lexer.prototype.statePunctuationSingle;
 			
             // < << <= <<< <<=
             lookup[PNC.less] = Lexer.genPunctuationScanner(
                 [[PNC.less], [PNC.assign], [PNC.less, PNC.less], [PNC.less, PNC.assign]]
             );
+            
             // > >= >> >>= >>> >>>=
-            lookup[PNC.more] = Lexer.genPunctuationScanner(
-                [[PNC.more], [PNC.assign], [PNC.more, PNC.more], [PNC.more, PNC.assign], [PNC.more, PNC.more, PNC.assign]]
-            );
+            lookup[PNC.more] = Lexer.genPunctuationScanner([
+                [PNC.more], [PNC.assign], [PNC.more, PNC.more],
+                [PNC.more, PNC.assign], [PNC.more, PNC.more, PNC.assign]
+            ]);
+            
             // ! != !==
             lookup[PNC.excl] = Lexer.genPunctuationScanner(
                 [[PNC.assign], [PNC.assign, PNC.assign]]
             );
+            
             // - -- -=
             lookup[PNC.minus] = Lexer.genPunctuationScanner(
                 [[PNC.minus], [PNC.assign]]
             );
+            
             // + ++ +-=
             lookup[PNC.plus] = Lexer.genPunctuationScanner(
                 [[PNC.plus], [PNC.assign]]
             );
+            
             // % %=
             lookup[PNC.percent] = Lexer.genPunctuationScanner(
                 [[PNC.assign]]
             );
+            
             // & && &=
             lookup[PNC.ampersand] = Lexer.genPunctuationScanner(
                 [[PNC.ampersand], [PNC.assign]]
             );
+            
             // | || |=
             lookup[PNC.vertical] = Lexer.genPunctuationScanner(
                 [[PNC.vertical], [PNC.assign]]
             );
+            
             // ^ ^=
             lookup[PNC.caret] = Lexer.genPunctuationScanner(
                 [[PNC.assign]]
             );
 
+            // ~
             lookup[PNC.tilde] = Lexer.prototype.statePunctuationSingle;
+            
+            // ?
             lookup[PNC.quest] = Lexer.prototype.statePunctuationSingle;
+            
+            // :
             lookup[PNC.colon] = Lexer.prototype.statePunctuationSingle;
+            
             // = == ===
             lookup[PNC.assign] = Lexer.genPunctuationScanner(
                 [[PNC.assign], [PNC.assign, PNC.assign]]
             );
+            
             // * *=
             lookup[PNC.asterisk] = Lexer.genPunctuationScanner(
                 [[PNC.assign]]
@@ -227,22 +261,28 @@ module trl.frontend.lexical {
             return this.isIdentifier(token) && token.value === value;
         }
 
-        public matchPunctuation(value: string) {
+        private matchType(value: string, typeMatcher: (token: IToken, value: string) => boolean): boolean {
             const token = this.lookAheadNextToken();
-            if (this.isPunctuationValue(token, value)) {
+            if (typeMatcher.call(this, token, value)) {
                 this.nextToken();
                 return true;
             }
             return false;
         }
 
-        public matchKeyword(value: string) {
-            const token = this.lookAheadNextToken();
-            if (this.isKeywordValue(token, value)) {
-                this.nextToken();
-                return true;
-            }
-            return false;
+        public matchPunctuation(value: string): boolean {
+            return this.matchType(value, this.isPunctuationValue);
+        }
+
+        public matchKeyword(value: string): boolean {
+            return this.matchType(value, this.isKeywordValue);
+        }
+
+        public reinterpretLastTokenAsRegex(token: IToken): IToken {
+            utilities.assert(this.isPunctuationValue(token, "/") || this.isPunctuationValue(token, "/="));
+            this.lookAheadToken = undefined;
+            this.charStream.bwdCursorRange(token.value.length);
+            return this.beginFromStateRegex();
         }
 
         public nextToken(): IToken {
@@ -252,37 +292,59 @@ module trl.frontend.lexical {
                 return this.currentToken = lookAheadToken;
             }
 
-            let nextToken = this.beginStates();
+            let nextToken = this.beginFromStateInit();
             if (this.isComment(nextToken)) {
                 if (this.options.includeCommentsAsNormalTokens) {
                     this.comments.push(nextToken);
-                } else {
+                }
+                else {
                     do {
                         this.comments.push(nextToken);
-                        nextToken = this.beginStates();
+                        nextToken = this.beginFromStateInit();
                     } while (this.isComment(nextToken));
                 }
             }
 
-
             return nextToken;
         }
 
-        private beginStates(): IToken {
-            let nextState = this.stateInit();
+        private startStateEngine(nextState: string) {
             while (nextState) {
                 nextState = this[nextState].call(this);
             }
-            if (!this.token) {
-                this.token = this.createToken(TokenType.error, undefined);
-            }
-            if (this.options.readableTokensMode && this.token) {
-                this.token.type = toReadableTokenType(this.token.type as TokenType);
-                if (this.token.subType) {
-                    this.token.subType = toReadableLiteralSubType(this.token.subType as LiteralSubType);
-                }
+
+            if (this.options.readableTokensMode) {
+                this.translateReadableTokens();
             }
             return this.currentToken = this.token;
+        }
+
+        private translateReadableTokens() {
+            this.token.type = toReadableTokenType(this.token.type as TokenType);
+            if (this.token.subType) {
+                this.token.subType = toReadableLiteralSubType(this.token.subType as LiteralSubType);
+            }
+        }
+
+        private beginFromStateInit(): IToken {
+            const nextState = this.stateInit();
+            return this.startStateEngine(nextState);
+        }
+
+        private beginFromStateRegex(): IToken {
+            this.cleanupContext();
+            const nextState = this.stateRegex();
+            return this.startStateEngine(nextState);
+        }
+
+        private cleanupContext() {
+            //cleanup current token
+            this.token = undefined;
+			
+            //track cursor position
+            this.startLineno = this.lineno;
+            this.relativeStartCursor = this.charStream.getCursor() - this.currLineCursor;
+            this.absoluteStartCursor = this.charStream.getCursor();
         }
 
         public latestToken(): IToken {
@@ -318,20 +380,16 @@ module trl.frontend.lexical {
 		
         private stateFinish() { }
 
-        private stateError() { }
+        private stateError() {
+            this.token = this.createTokenFromPos(TokenType.error);
+        }
         /////// final states //////
 		
         ///////////////////////////////////////////
         // States
 		
         private stateInit() {
-            //cleanup current token
-            this.token = undefined;
-			
-            //track cursor position
-            this.startLineno = this.lineno;
-            this.relativeStartCursor = this.charStream.getCursor() - this.currLineCursor;
-            this.absoluteStartCursor = this.charStream.getCursor();
+            this.cleanupContext();
 
             if (this.charStream.isEof()) {
                 this.token = this.createToken(TokenType.eof, undefined);
@@ -344,19 +402,15 @@ module trl.frontend.lexical {
             if (Identifyers.isIdentifierStart(char)) {
                 this.charStream.bwdCursor();
                 nextState = States.identifier;
-            } else {
+            }
+            else {
                 let charCachedHandler: () => string = Lexer.CharecterLookup[char];
                 if (charCachedHandler) {
                     this.charStream.bwdCursor();
                     nextState = charCachedHandler.call(this);
                 }
                 else if (char !== undefined) {
-                    this.exceptionHandler.addException(
-                        "unexpected token \"" + utilities.CharPoints.fromCodePoint(char) + "\"",
-                        this.lineno,
-                        this.charStream.getCursor()
-                    );
-                    nextState = States.error;
+                    nextState = this.unexpectedChar();
                 }
             }
 
@@ -368,15 +422,13 @@ module trl.frontend.lexical {
                 char = this.charStream.getNextChar();
 
             if (!this.scanUnicodeEscapeSequence(charGen, char)) {
-                this.exceptionHandler.addException("", this.lineno, this.charStream.getCursor());
-                return States.error;
+                return this.unexpectedChar();
             }
             while (true) {
                 let char = this.charStream.getNextChar();
                 if (Identifyers.isIdentifierPart(char)) {
                     if (!this.scanUnicodeEscapeSequence(charGen, char)) {
-                        this.exceptionHandler.addException("", this.lineno, this.charStream.getCursor());
-                        return States.error;
+                        return this.unexpectedChar();
                     }
                 }
                 else {
@@ -394,21 +446,25 @@ module trl.frontend.lexical {
             }
             else {
                 switch (str) {
+
                     case "null":
                         type = TokenType.literal;
                         subType = LiteralSubType.null;
                         str = null;
                         break;
+
                     case "true":
                         type = TokenType.literal;
                         subType = LiteralSubType.boolean;
                         str = true;
                         break;
+
                     case "false":
                         type = TokenType.literal;
                         subType = LiteralSubType.boolean;
                         str = false;
                         break;
+
                     default:
                         type = TokenType.identifier;
                 }
@@ -430,11 +486,13 @@ module trl.frontend.lexical {
             return function() {
                 this.charStream.getNextChar();
                 let charGen: utilities.IStringFromCharPoint = utilities.CharPoints.createStringFromCharPointGenerator();
+
                 while (true) {
                     let char = this.charStream.getNextChar();
                     if (char === stringTerminatorChar) {
                         break;
-                    } else if (char === PNC.backslash) {
+                    }
+                    else if (char === PNC.backslash) {
                         char = this.charStream.getNextChar();
                         switch (char) {
                             case PNC.b: charGen.addCharPoint(8); break;
@@ -445,15 +503,17 @@ module trl.frontend.lexical {
                             case PNC.v: charGen.addCharPoint(11); break;
 
                             case PNC.x:
-                                if (!this.handleScanHexDigits(2, charGen)) {
+                                if (!this.handleScangits(2, charGen)) {
                                     return States.error;
                                 }
                                 break;
+
                             case PNC.u:
                                 if (!this.handleScanHexDigits(4, charGen)) {
                                     return States.error;
                                 }
                                 break;
+
                             default: {
                                 if (Identifyers.isLineTerminator(char)) {
                                     charGen.addCharPoint(char);
@@ -463,8 +523,7 @@ module trl.frontend.lexical {
                         }
                     }
                     else if (char === undefined) {
-                        this.exceptionHandler.addException("unclosed string", this.lineno, this.charStream.getCursor());
-                        return States.error;
+                        return this.unexpectedChar("unclosed string");
                     }
                     else {
                         charGen.addCharPoint(char);
@@ -476,6 +535,18 @@ module trl.frontend.lexical {
         }
 
         private stateNumber(): string {
+            if (this.charStream.match(PNC.zero)) {
+                if (this.charStream.match(PNC.x)) {
+                    const hexNum = this.scanHexDigits();
+                    if (hexNum === undefined) {
+                        return this.unexpectedChar();
+                    }
+                    this.token = this.createToken(TokenType.literal, hexNum, LiteralSubType.number);
+                    return States.finish
+                }
+                this.charStream.bwdCursor();
+            }
+
             let int = this.scanDigits(),
                 point = int.length;
             if (this.charStream.match(PNC.dot)) {
@@ -492,7 +563,8 @@ module trl.frontend.lexical {
             let decimal = this.scanDecimal();
             if (decimal !== undefined) {
                 return this.scanExponensialAndCreateNumber(decimal, 0);
-            } else {
+            }
+            else {
                 this.charStream.bwdCursor();
                 return this.statePunctuationSingle();
             }
@@ -502,14 +574,18 @@ module trl.frontend.lexical {
             this.charStream.fwdCursor();
             let char = this.charStream.getNextChar();
             switch (char) {
+
                 case PNC.slash:
                     return States.singleComment;
                     break;
+
                 case PNC.asterisk:
                     return States.multiComment;
                     break;
+
                 case PNC.assign:
                     break;
+
                 default:
                     this.charStream.bwdCursor();
             }
@@ -530,8 +606,8 @@ module trl.frontend.lexical {
 
         private stateLineTerminator(): string {
             const char = this.charStream.getNextChar();
-            this.charStream.matchComplex(nextchar => 
-                (char === PNC.cr && nextchar === PNC.lf) 
+            this.charStream.matchComplex(nextchar =>
+                (char === PNC.cr && nextchar === PNC.lf)
                 || nextchar === undefined
             );
             this.handleNewLine();
@@ -559,8 +635,7 @@ module trl.frontend.lexical {
                     }
                 }
                 if (char === undefined) {
-                    this.exceptionHandler.addException("unclosed comment", this.lineno, this.charStream.getCursor());
-                    return States.error;
+                    return this.unexpectedChar("unclosed string");
                 }
                 else if (Identifyers.isLineTerminator(char)) {
                     this.handleNewLine();
@@ -574,7 +649,7 @@ module trl.frontend.lexical {
             if (char === PNC.backslash) {
                 char = this.charStream.getNextChar();
                 if (char === PNC.u) {
-                    let hexDigit = this.scanHexDigits(4);
+                    let hexDigit = this.scanHexDigitsTimes(4);
                     if (hexDigit === undefined) {
                         return false;
                     }
@@ -591,6 +666,67 @@ module trl.frontend.lexical {
             }
             return true;
         }
+
+        private stateRegex(): string {
+
+            const charGen: utilities.IStringFromCharPoint = utilities.CharPoints.createStringFromCharPointGenerator();
+            let char = this.charStream.getNextChar();
+            charGen.addCharPoint(char);
+
+            let regexBodyHasMoreChars = true;
+            let inClass = false;
+            while (regexBodyHasMoreChars) {
+                char = this.charStream.getNextChar();
+                if (char === undefined) {
+                    return this.unexpectedChar("Invalid regular expression");
+                }
+                charGen.addCharPoint(char);
+                switch (char) {
+                    case PNC.backslash:
+                        char = this.charStream.getNextChar();
+                        if (char === undefined || Identifyers.isLineTerminator(char)) {
+                            return this.unexpectedChar("Invalid regular expression");
+                        }
+                        charGen.addCharPoint(char);
+                        break;
+
+                    case PNC.lbracket:
+                        inClass = true;
+                        break;
+
+                    case PNC.rbracket:
+                        if (inClass) {
+                            inClass = false;
+                        }
+                        break;
+
+                    case PNC.slash:
+                        regexBodyHasMoreChars = false;
+                        break;
+
+                    default:
+                        if (char === undefined || Identifyers.isLineTerminator(char)) {
+                            return this.unexpectedChar();
+                        }
+                }
+            }
+
+            while (true) {
+                char = this.charStream.getNextChar();
+                if (Identifyers.isIdentifierPart(char)) {
+                    charGen.addCharPoint(char);
+                }
+                else {
+                    if (char !== undefined) {
+                        this.charStream.bwdCursor();
+                    }
+                    break;
+                }
+            }
+            //this.charStream.bwdCursor();
+            this.token = this.createToken(TokenType.literal, charGen.getString(), LiteralSubType.regex);
+            return States.finish;
+        }       
         ///////////////////States//////////////////
 		
         ///////////////////////////////////////////
@@ -601,8 +737,7 @@ module trl.frontend.lexical {
                 return States.error;
             }
             if (this.charStream.matchComplex(char => Identifyers.isIdentifierPart(char))) {
-                this.exceptionHandler.addException("", this.lineno, this.charStream.getCursor());
-                return States.error;
+                return this.unexpectedChar();
             }
             let num = this.createNumber(int, point, exp);
             this.token = this.createToken(TokenType.literal, num, LiteralSubType.number);
@@ -623,14 +758,12 @@ module trl.frontend.lexical {
                     break;
                 }
             }
-            let currCursorpos;
-            if (char === undefined) {
-                currCursorpos = this.charStream.getCursor();
-            }
-            else {
+
+            if (char !== undefined) {
                 this.charStream.bwdCursor();
-                currCursorpos = this.charStream.getCursor();
             }
+
+            const currCursorpos = this.charStream.getCursor();
             if (currCursorpos - cursorPos !== 0) {
                 return dits;
             }
@@ -651,17 +784,20 @@ module trl.frontend.lexical {
             if (char === PNC.exp || char === PNC.expb) {
                 char = this.charStream.getNextChar();
                 let negative;
+
                 if (char === PNC.minus) {
                     negative = true;
                 }
                 else if (char !== PNC.plus) {
                     this.charStream.bwdCursor();
                 }
+
                 let digits = this.scanDigits();
                 if (digits === undefined) {
-                    this.exceptionHandler.addException("exponential should postfixed by numbers", this.lineno, this.charStream.getCursor());
+                    this.unexpectedChar("exponential should postfixed by numbers");
                     return;
                 }
+
                 let num = this.createNumber(digits, digits.length, 0);
                 return negative ? -num : num;
             }
@@ -671,32 +807,46 @@ module trl.frontend.lexical {
             return 0;
         }
 
-        private scanHexDigits(times: number): number {
-            if (this.scanHexDigitsTimes(times)) {
-                let char = this.charStream.getCursor(),
-                    hexStr = this.charStream.tokenize(char - times);
-                return parseInt(hexStr, 16);
-            }
-        }
-
-        private scanHexDigitsTimes(times: number): boolean {
+        private scanHexDigitsTimes(times: number): number {
             let startingPos = times;
             do {
                 let char = this.charStream.getNextChar();
                 if (!Identifyers.isHexDigit(char)) {
                     this.charStream.bwdCursorRange(startingPos - (times - 1));
-                    return false;
+                    return;
                 }
             } while (--times);
-            return true;
+
+            const cursorPos = this.charStream.getCursor(),
+                hexStr = this.charStream.tokenize(cursorPos - startingPos);
+            return parseInt(hexStr, 16);
+        }
+
+        private scanHexDigits(): number {
+            let char = this.charStream.getNextChar();
+            let hexLen = 0;
+            while (Identifyers.isHexDigit(char)) {
+                ++hexLen;
+                char = this.charStream.getNextChar();
+            }
+
+            if (hexLen === 0) {
+                return;
+            } else if (char !== undefined) {
+                this.charStream.bwdCursor();
+            }
+
+            const cursorPos = this.charStream.getCursor(),
+                hexStr = this.charStream.tokenize(cursorPos - hexLen);
+            return parseInt(hexStr, 16);
         }
 
         private static genPunctuationScanner(candicatePuncs: number[][]) {
-            const lastLen = _.last(candicatePuncs).length;
-            let puncsLookup = _.map(new Array(lastLen), () => new Object());
+            const lastLen = _.last(candicatePuncs).length,
+                puncsLookup = _.map(new Array(lastLen), () => new Object());
             for (let curr = lastLen - 1; curr !== -1; --curr) {
                 for (let i = candicatePuncs.length - 1; i !== -1; --i) {
-                    let c = candicatePuncs[i][curr];
+                    const c = candicatePuncs[i][curr];
                     if (c) {
                         puncsLookup[curr][c] = true;
                     }
@@ -726,14 +876,11 @@ module trl.frontend.lexical {
 
         ///////////////////////////////////////////
         // Lex object creators
-        private createPos(): ITokenSourceLocation {
-            return {
-                start: {
-                    line: this.startLineno,
-                    column: this.relativeStartCursor
-                },
-                end: this.getCurrentCursorPos()
-            }
+        private createTokenSourceLocationFromCursor(): ITokenSourceLocation {
+            return TokenSourceLocation.create({
+                line: this.startLineno,
+                column: this.relativeStartCursor
+            }, this.getCurrentCursorPos());
         }
 
         private createTokenFromPos(type: string | TokenType, subType?: string): IToken {
@@ -744,7 +891,7 @@ module trl.frontend.lexical {
         private createToken(type: string | TokenType, value: any, subType?: string | LiteralSubType): IToken {
             const token: IToken = { type, value, subType };
             if (this.options.loc) {
-                token.loc = this.createPos();
+                token.loc = this.createTokenSourceLocationFromCursor();
             }
             return token;
         }
@@ -781,9 +928,9 @@ module trl.frontend.lexical {
         }
 
         private handleScanHexDigits(num: number, charGen: utilities.IStringFromCharPoint): boolean {
-            let hexDigit = this.scanHexDigits(num);
+            let hexDigit = this.scanHexDigitsTimes(num);
             if (hexDigit === undefined) {
-                this.exceptionHandler.addException("", this.lineno, this.charStream.getCursor());
+                this.unexpectedChar();
                 return false;
             }
             else {
@@ -795,8 +942,22 @@ module trl.frontend.lexical {
         private handleNewLine() {
             ++this.lineno;
             this.currLineCursor = this.charStream.getCursor();
-        }		
+        }
+
+        private unexpectedChar(msg?: string): string {
+            msg = msg || this.charStream.tokenize(this.charStream.getCursor() - 1);
+            this.exceptionHandler.addException(msg, this.lineno, this.charStream.getCursor());
+            return States.error;
+        }        	
         ///////////////Handlers////////////////
+    }
+
+    export class TokenSourceLocation {
+
+        public static create(start: lexical.ITokenPosition, end: lexical.ITokenPosition): lexical.ITokenSourceLocation {
+            return { start, end };
+        }
+
     }
 }
 

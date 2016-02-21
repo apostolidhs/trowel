@@ -26,7 +26,9 @@ module trl.frontend.lexical {
 		}
 
 		static isKeyword(str: string): boolean {
-			return TokenDefinitions.KW[str];
+            // When str contains a value like 'toString', 
+            // KW has conflict and returns the function toString
+			return _.has(TokenDefinitions.KW, str);
 		}
 		
 		static isLineTerminator(c: number): boolean {

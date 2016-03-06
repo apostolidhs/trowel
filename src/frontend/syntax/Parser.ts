@@ -58,14 +58,6 @@ module trl.frontend.syntax {
         ///////////////////////////////////////////
         // Context Utilities
 
-        // private isKeyword(token: lexical.IToken): boolean {
-        //     const isValid = this.lex.isKeyword(token);
-        //     if (isValid) {
-        //         return token.value === "in" ? this.inForIn : true;
-        //     }
-        //     return false;
-        // }
-
         //iteration mutex
         private beginIteration() {
             ++this.inLoopMutex[this.inLoopMutex.length - 1];
@@ -537,8 +529,8 @@ module trl.frontend.syntax {
             const token = this.lex.lookAheadNextToken();
             let item: INode = null;
 
-            if (this.tokenIsInSameLine(token) 
-                && !this.lex.isPunctuationValue(token, ";") 
+            if (this.tokenIsInSameLine(token)
+                && !this.lex.isPunctuationValue(token, ";")
                 && !this.lex.isPunctuationValue(token, "}")
                 && !this.lex.isEof(token)
             ) {
@@ -921,14 +913,14 @@ module trl.frontend.syntax {
             '/': Parser.BinaryTokenValues_multi,
             '%': Parser.BinaryTokenValues_multi
         }
-        
+
         private static getBinaryOperationToken(op: string, allowIn: boolean): number {
-            if(op === 'in') {
+            if (op === 'in') {
                 return allowIn ? Parser.BinaryTokenValues[op] : undefined;
             }
             else {
                 return Parser.BinaryTokenValues[op];
-            }            
+            }
         }
 
         private createBinaryExpression(
@@ -1005,15 +997,15 @@ module trl.frontend.syntax {
                 }
             }
 
-            return lexpr;   
+            return lexpr;
         }
-        
+
         public parseBinaryExpression(): IExpression {
             const oldInForIn = this.inForIn;
             this.inForIn = false;
-            
+
             const expr = this.innerBarseBinaryExpression(!oldInForIn);
-            
+
             this.inForIn = oldInForIn;
             return expr;
         }
@@ -1182,7 +1174,7 @@ module trl.frontend.syntax {
                         case "/": {
                             token = this.lex.reinterpretLastTokenAsRegex(token);
                             if (this.lex.isError(token)) return;
-                            
+
                             return this.nodeFactory.createLiteral(token.value, this.trackPositionUnary(token));
                         }
                     }
@@ -1412,10 +1404,10 @@ module trl.frontend.syntax {
 
             const stmt = this.parseBlockStatement();
 
-            this.finishFunction();
             this.restoreSwitchScope();
             this.restoreIterationScope();
-
+            this.finishFunction();
+            
             return stmt;
         }
 

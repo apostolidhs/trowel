@@ -1,5 +1,5 @@
 /// <reference path="../../../tsDefinitions/tsd.d.ts" />
-/// <reference path="../utilities/CharPoints.ts" />
+/// <reference path="../CharPoints.ts" />
 /// <reference path="TokenDefinitions.ts" />
 
 module trl.frontend.lexical {
@@ -7,12 +7,12 @@ module trl.frontend.lexical {
 	let hexDigits = {};
 	_.each("0123456789ABCDEFabcdef", (numChar) => {
 		
-		hexDigits[utilities.CharPoints.codePointAt(numChar, 0)] = true;
+		hexDigits[CharPoints.codePointAt(numChar, 0)] = true;
 	});
 	
 	let digits = {};
 	_.each("0123456789", (numChar) => {
-		digits[utilities.CharPoints.codePointAt(numChar, 0)] = true;
+		digits[CharPoints.codePointAt(numChar, 0)] = true;
 	});
 	
 	export class Identifyers {
@@ -51,7 +51,7 @@ module trl.frontend.lexical {
 			
 		static isComplexUnicodeContinue(c: number): boolean {
 			return c > TokenDefinitions.UNICODE_UNCOMMON_THRESHOLD 
-				&& TokenDefinitions.UNICODE_CONTINUE_UNCOMMON.test(utilities.CharPoints.fromCodePoint(c));
+				&& TokenDefinitions.UNICODE_CONTINUE_UNCOMMON.test(CharPoints.fromCodePoint(c));
 		}	
 		
 		static isSimpleUnicodeStart(c: number): boolean {
@@ -60,7 +60,7 @@ module trl.frontend.lexical {
 			
 		static isComplexUnicodeStart(c: number): boolean {
 			return c > TokenDefinitions.UNICODE_UNCOMMON_THRESHOLD 
-				&& TokenDefinitions.UNICODE_START_UNCOMMON.test(utilities.CharPoints.fromCodePoint(c));
+				&& TokenDefinitions.UNICODE_START_UNCOMMON.test(CharPoints.fromCodePoint(c));
 		}	
 		
 		static isPunctuationStart(c: number): boolean {

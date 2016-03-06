@@ -1,6 +1,6 @@
 /// <reference path="IException.d.ts" />
 
-module trl.frontend.utilities {
+module trl.frontend {
 	export class ExceptionHandler implements IExceptionHandler {
 		private exceptions: IException[] = [];
 		

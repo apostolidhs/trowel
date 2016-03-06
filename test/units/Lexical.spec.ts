@@ -320,7 +320,7 @@ describe('js source text read as tokens', function() {
     
 	function tokenizeLexer(testingExpect: trl.test.ITestExpectation) {
 		let cs = new trl.frontend.lexical.CharacterStream(testingExpect.content);
-		let eh = new trl.frontend.utilities.ExceptionHandler();
+		let eh = new trl.frontend.ExceptionHandler();
         const lexicalOption: trl.frontend.lexical.ILexerOptions = {
             loc: true, 
             readableTokensMode: true,

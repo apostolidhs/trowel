@@ -10,7 +10,7 @@ declare module trl.frontend.syntax {
     export interface IParser {
         parse(): IProgram;
         
-        getExceptions(): utilities.IExceptionHandler;
+        getExceptions(): IExceptionHandler;
     }
     
 }

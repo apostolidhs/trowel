@@ -1,6 +1,6 @@
-/// <reference path="../lexical/ILexer.ts" />
+/// <reference path="lexical/ILexer.ts" />
 
-declare module trl.frontend.utilities {
+declare module trl.frontend {
 		
 	export interface IException {
 		pos: lexical.ITokenPosition,

@@ -1,5 +1,5 @@
 /// <reference path="../../tsDefinitions/tsd.d.ts" />
-/// <reference path="utilities/Exception.ts" />
+/// <reference path="Exception.ts" />
 /// <reference path="lexical/Lexer.ts" />
 /// <reference path="lexical/CharacterStream.ts" />
 /// <reference path="syntax/Parser.ts" />
@@ -8,17 +8,17 @@ module trl.frontend.api {
 
 	interface ITokenizeResult {
 		tokens: lexical.IToken[],
-		exceptions?: utilities.IException[]
+		exceptions?: IException[]
 	}
     
 	interface IParserResult {
 		program: any,
-		exceptions?: utilities.IException[]
+		exceptions?: IException[]
 	}    
 
 	export function tokenize(src: string, options?: lexical.ILexerOptions): ITokenizeResult {
 		const charStream = new lexical.CharacterStream(src),
-			exceptionHandler = new utilities.ExceptionHandler(),
+			exceptionHandler = new ExceptionHandler(),
 			lexer = new lexical.Lexer(charStream, exceptionHandler, options);
 
 		const tokens: lexical.IToken[] = [];

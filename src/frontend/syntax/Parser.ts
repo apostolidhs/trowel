@@ -1,7 +1,7 @@
 /// <reference path="../../../tsDefinitions/tsd.d.ts" />
 /// <reference path="../lexical/Lexer.ts" />
-/// <reference path="../utilities/Assertion.ts" />
-/// <reference path="../utilities/Exception.ts" />
+/// <reference path="../../utilities/Assertion.ts" />
+/// <reference path="../Exception.ts" />
 /// <reference path="../lexical/CharacterStream.ts" />
 /// <reference path="../lexical/TokenDefinitions.ts" />
 /// <reference path="NodeFactory.ts" />
@@ -12,10 +12,10 @@ module trl.frontend.syntax {
     export class Parser implements IParser {
 
         private nodeFactory: NodeFactory;
-        private parseException: utilities.IExceptionHandler;
+        private parseException: IExceptionHandler;
 
         private charStream: lexical.ICharacterStream;
-        private lexException: utilities.IExceptionHandler;
+        private lexException: IExceptionHandler;
         private lex: lexical.ILexer;
 
         private inForIn: boolean;
@@ -43,10 +43,10 @@ module trl.frontend.syntax {
                 Parser.defaultParserOptions
             );
             this.nodeFactory = new NodeFactory(this.options.loc);
-            this.parseException = new utilities.ExceptionHandler();
+            this.parseException = new ExceptionHandler();
 
             this.charStream = new lexical.CharacterStream(chars);
-            this.lexException = new utilities.ExceptionHandler();
+            this.lexException = new ExceptionHandler();
             this.lex = new lexical.Lexer(this.charStream, this.lexException, Parser.lexerOptions);
 
             this.inForIn = false;
@@ -129,7 +129,7 @@ module trl.frontend.syntax {
         ///////////////////////////////////////////
         // Parse Utilities
         
-        public getExceptions(): utilities.IExceptionHandler {
+        public getExceptions(): IExceptionHandler {
             return this.parseException;
         }
 

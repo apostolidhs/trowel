@@ -1,5 +1,5 @@
 /// <reference path="../../../tsDefinitions/tsd.d.ts" />
-/// <reference path="../utilities/CharPoints.ts" />
+/// <reference path="../CharPoints.ts" />
 /// <reference path="ICharacterStream.d.ts" />
 
 module trl.frontend.lexical {
@@ -13,12 +13,12 @@ module trl.frontend.lexical {
 
 		public getNextChar(): number {
 			if(this.hasNext()) {
-				return utilities.CharPoints.codePointAt(this.src, this.cursor++);
+				return CharPoints.codePointAt(this.src, this.cursor++);
 			}				
 		}
 		
 		public getChar(): number {
-			return utilities.CharPoints.codePointAt(this.src, this.cursor);
+			return CharPoints.codePointAt(this.src, this.cursor);
 		}
 
 		public getCursor(): number {

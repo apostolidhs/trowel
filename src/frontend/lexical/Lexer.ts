@@ -1,6 +1,6 @@
 /// <reference path="../../../tsDefinitions/tsd.d.ts" />
-/// <reference path="../utilities/IException.d.ts" />
-/// <reference path="../utilities/CharPoints.ts" />
+/// <reference path="../IException.d.ts" />
+/// <reference path="../CharPoints.ts" />
 /// <reference path="ILexer.ts" />
 /// <reference path="TokenDefinitions.ts" />
 /// <reference path="Identifyers.ts" />
@@ -99,7 +99,7 @@ module trl.frontend.lexical {
 			
             //number
             _.each("0123456789", numChar =>
-                lookup[utilities.CharPoints.codePointAt(numChar, 0)] = Lexer.prototype.stateNumber);
+                lookup[CharPoints.codePointAt(numChar, 0)] = Lexer.prototype.stateNumber);
 
             // {
             lookup[PNC.lbrace] = Lexer.prototype.statePunctuationSingle;
@@ -208,7 +208,7 @@ module trl.frontend.lexical {
 
         public constructor(
             private charStream: ICharacterStream,
-            private exceptionHandler: utilities.IExceptionHandler,
+            private exceptionHandler: IExceptionHandler,
             private options?: ILexerOptions
         ) {
             this.options = _.defaults(
@@ -418,7 +418,7 @@ module trl.frontend.lexical {
         }
 
         private stateIdentifier(): string {
-            let charGen: utilities.IStringFromCharPoint = utilities.CharPoints.createStringFromCharPointGenerator(),
+            let charGen: IStringFromCharPoint = CharPoints.createStringFromCharPointGenerator(),
                 char = this.charStream.getNextChar();
 
             if (!this.scanUnicodeEscapeSequence(charGen, char)) {
@@ -485,7 +485,7 @@ module trl.frontend.lexical {
             // cannot be an arrow function because it binds _this -> this
             return function() {
                 this.charStream.getNextChar();
-                let charGen: utilities.IStringFromCharPoint = utilities.CharPoints.createStringFromCharPointGenerator();
+                let charGen: IStringFromCharPoint = CharPoints.createStringFromCharPointGenerator();
 
                 while (true) {
                     let char = this.charStream.getNextChar();
@@ -645,7 +645,7 @@ module trl.frontend.lexical {
             return States.finish;
         }
 
-        private scanUnicodeEscapeSequence(charGen: utilities.IStringFromCharPoint, char: number): boolean {
+        private scanUnicodeEscapeSequence(charGen: IStringFromCharPoint, char: number): boolean {
             if (char === PNC.backslash) {
                 char = this.charStream.getNextChar();
                 if (char === PNC.u) {
@@ -669,7 +669,7 @@ module trl.frontend.lexical {
 
         private stateRegex(): string {
 
-            const charGen: utilities.IStringFromCharPoint = utilities.CharPoints.createStringFromCharPointGenerator();
+            const charGen: IStringFromCharPoint = CharPoints.createStringFromCharPointGenerator();
             let char = this.charStream.getNextChar();
             charGen.addCharPoint(char);
 
@@ -751,7 +751,7 @@ module trl.frontend.lexical {
             while (true) {
                 char = this.charStream.getNextChar();
                 if (Identifyers.isDigit(char)) {
-                    let digit = utilities.CharPoints.getDigitFromCharPoint(char);
+                    let digit = CharPoints.getDigitFromCharPoint(char);
                     dits.push(digit);
                 }
                 else {
@@ -927,7 +927,7 @@ module trl.frontend.lexical {
             }
         }
 
-        private handleScanHexDigits(num: number, charGen: utilities.IStringFromCharPoint): boolean {
+        private handleScanHexDigits(num: number, charGen: IStringFromCharPoint): boolean {
             let hexDigit = this.scanHexDigitsTimes(num);
             if (hexDigit === undefined) {
                 this.unexpectedChar();

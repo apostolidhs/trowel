@@ -1,6 +1,6 @@
-/// <reference path="../../../tsDefinitions/tsd.d.ts" />
+/// <reference path="../../tsDefinitions/tsd.d.ts" />
 
-module trl.frontend.utilities {
+module trl.frontend {
     
     // let's use our imagination
     export type Ichar = number;

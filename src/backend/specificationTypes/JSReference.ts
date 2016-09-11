@@ -3,10 +3,12 @@ module trl.backend {
     export type JSBaseValueType = JSUndefined | JSObject | JSBoolean | JSString | JSNumber | JSEnviromentRecord
               
     export class JSReference implements JSSpecificationType {
-        
-        private baseValue: JSBaseValueType;
-        private referencedName: JSString;
-        private strict: boolean;
+
+        constructor(
+            private baseValue: JSBaseValueType,
+            private referencedName: JSString,
+            private strict: boolean
+        ){}
         
         public getBase(): JSBaseValueType {
             return this.baseValue;

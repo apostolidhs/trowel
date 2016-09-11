@@ -6,4 +6,8 @@ module trl.utilities {
         }
     }
     
+    export function assertUnreachableStatement() {
+        throw new Error(`reached unreachable statement`);
+    }    
+    
 }

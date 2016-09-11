@@ -18,19 +18,19 @@ module trl.backend {
         ) { }
 
         public static createDataPropertyDescriptor(
-            jsvalue: IJSValue = JSApi.createUndefined(),
-            jswritable: JSBoolean = JSApi.createBoolean(false),
-            jsenumerable: JSBoolean = JSApi.createBoolean(false),
-            jsconfigurable: JSBoolean = JSApi.createBoolean(false)
+            jsvalue = JSApi.createUndefined(),
+            jswritable = JSApi.createBoolean(false),
+            jsenumerable = JSApi.createBoolean(false),
+            jsconfigurable = JSApi.createBoolean(false)
         ) {
             return new JSPropertyDescriptor(jsvalue, jswritable, undefined, undefined, jsenumerable, jsconfigurable);
         }
 
         public static createAccessorPropertyDescriptor(
-            jsget: JSObject | JSUndefined = JSApi.createUndefined(),
-            jsset: JSObject | JSUndefined = JSApi.createUndefined(),
-            jsenumerable: JSBoolean = JSApi.createBoolean(false),
-            jsconfigurable: JSBoolean = JSApi.createBoolean(false)
+            jsget = JSApi.createUndefined(),
+            jsset = JSApi.createUndefined(),
+            jsenumerable = JSApi.createBoolean(false),
+            jsconfigurable = JSApi.createBoolean(false)
         ) {
             return new JSPropertyDescriptor(undefined, undefined, jsget, jsset, jsenumerable, jsconfigurable);
         }
@@ -86,7 +86,7 @@ module trl.backend {
             return obj;                      
         }
 
-        public static toPropertyDescriptor(val: IJSValue): JSPropertyDescriptor {
+        public static toPropertyDescriptor(cx: vm.JSExecutionContexts, val: IJSValue): JSPropertyDescriptor {
             if(!JSApi.isObject(val)) {
                 JSApi.throwTypeErrorException();
                 return;
@@ -94,19 +94,19 @@ module trl.backend {
             const obj = val as JSObject;
             const desc = new JSPropertyDescriptor();
             if(obj.objHasProperty(JSApi.createString("enumerable"))) {
-                desc.jsenumerable = JSApi.toBoolean(obj.objGet(JSApi.createString("enumerable")));
+                desc.jsenumerable = JSApi.toBoolean(obj.objGet(cx, JSApi.createString("enumerable")));
             }
             if(obj.objHasProperty(JSApi.createString("configurable"))) {
-                desc.jsconfigurable = JSApi.toBoolean(obj.objGet(JSApi.createString("configurable")));
+                desc.jsconfigurable = JSApi.toBoolean(obj.objGet(cx, JSApi.createString("configurable")));
             }
             if(obj.objHasProperty(JSApi.createString("value"))) {
-                desc.jsvalue = obj.objGet(JSApi.createString("value"));
+                desc.jsvalue = obj.objGet(cx, JSApi.createString("value"));
             }      
             if(obj.objHasProperty(JSApi.createString("writable"))) {
-                desc.jswritable = JSApi.toBoolean(obj.objGet(JSApi.createString("writable")));
+                desc.jswritable = JSApi.toBoolean(obj.objGet(cx, JSApi.createString("writable")));
             }    
             if(obj.objHasProperty(JSApi.createString("get"))) {
-                const jsget = obj.objGet(JSApi.createString("get"));
+                const jsget = obj.objGet(cx, JSApi.createString("get"));
                 if(!JSApi.isCallable(jsget) && !JSApi.isUndefined(jsget)) {
                     JSApi.throwTypeErrorException();
                     return;
@@ -114,7 +114,7 @@ module trl.backend {
                 desc.jsget = jsget;
             }     
             if(obj.objHasProperty(JSApi.createString("set"))) {
-                const jsset = obj.objGet(JSApi.createString("set"));
+                const jsset = obj.objGet(cx, JSApi.createString("set"));
                 if(!JSApi.isCallable(jsset) && !JSApi.isUndefined(jsset)) {
                     JSApi.throwTypeErrorException();
                     return;
@@ -128,69 +128,19 @@ module trl.backend {
             return desc;                     
         } 
 
+        public isAllAbsent(): JSBoolean {
+            return JSApi.createBoolean(!this.jsvalue
+                    && !this.jswritable
+                    && !this.jsconfigurable
+                    && !this.jsenumerable
+                    && !this.jsget
+                    && !this.jsset
+                );
+        }
+
         public getType(): JSSpecificationTypes {
             return JSSpecificationTypes.propertyDescriptor;
         }
     }
-    
-    // export enum JSNamedPropertyType {
-    //     data,
-    //     accessor
-    // }
-
-    // interface JSNamedProperty {
-    //     getType(): JSNamedPropertyType;
-    //     getValue(): IJSValue;
-    //     putValue(val: IJSValue);
-    // }
-
-    // export class JSNamedDataProperty implements JSNamedProperty {
-
-    //     constructor(
-    //         public value: IJSValue = JSApi.createUndefined(),
-    //         public writable: JSBoolean = JSApi.createBoolean(false),
-    //         public enummerable: JSBoolean = JSApi.createBoolean(false),
-    //         public configurable: JSBoolean = JSApi.createBoolean(false)
-    //     ) { }
-
-    //     getType(): JSNamedPropertyType {
-    //         return JSNamedPropertyType.data;
-    //     }
-
-    //     public getValue(): IJSValue {
-    //         return this.value;
-    //     }
-
-    //     public putValue(val: IJSValue) {
-    //         this.value = val;
-    //     }
-    // }
-
-    // export class JSNamedAccessorProperty implements JSNamedProperty {
-
-    //     constructor(
-    //         public get: JSObject | JSUndefined = JSApi.createUndefined(),
-    //         public set: JSObject | JSUndefined = JSApi.createUndefined(),
-    //         public enummerable: JSBoolean = JSApi.createBoolean(false),
-    //         public configurable: JSBoolean = JSApi.createBoolean(false)
-    //     ) { }
-
-    //     getType(): JSNamedPropertyType {
-    //         return JSNamedPropertyType.accessor;
-    //     }
-
-    //     public getValue(): IJSValue {
-    //         if (JSApi.isUndefined(this.get)) {
-    //             return this.get;
-    //         }
-    //         return JSApi.callObjectFunction(this.get as JSObject);
-    //     }
-
-    //     public putValue(val: IJSValue) {
-    //         if (JSApi.isObject(this.get)) {
-    //             return JSApi.callObjectFunction(this.get as JSObject, [val]);
-    //         }
-    //     }
-    // }    
 
 }

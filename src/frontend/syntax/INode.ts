@@ -7,11 +7,11 @@ module trl.frontend.syntax {
         loc: lexical.ITokenSourceLocation
     }
 
-    export interface IProgram extends INode {
+    export interface IProgram extends INode, IJSContextInfo {
         body: IStatement[];
     }
 
-    export interface IFunction extends INode {
+    export interface IFunction extends INode, IJSContextInfo {
         id: IIdentifier;
         params: IIdentifier[];
         body: IBlockStatement;
@@ -207,5 +207,16 @@ module trl.frontend.syntax {
     }
     
     export interface IRegExp { }
-   
+ 
+    /////////////////////////////////
+    // Javascript runtime necessary information
+    export interface IJSContext {
+        strict: boolean;
+        functionDeclarations: IFunctionDeclaration[];
+        variableDeclarations: IVariableDeclaration[];
+    }  
+    
+    export interface IJSContextInfo {
+        jscontext?: IJSContext;
+    }
 }

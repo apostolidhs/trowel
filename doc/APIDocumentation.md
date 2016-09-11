@@ -38,7 +38,7 @@ interface ITokenizeResult {
 
 export interface IParserOptions {
     loc?: boolean;
-    tolerateErrors?: boolean;
+    attachJSContextInfo?: boolean;
 }   
 
 interface IParserResult {

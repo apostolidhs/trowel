@@ -1,19 +1,22 @@
 module trl.backend {
               
-    export class JSEnviromentRecord implements JSSpecificationType {
+    export abstract class JSEnviromentRecord implements JSSpecificationType {
         
-        public getBindingValue(name: JSString, strict: boolean): IJSValue {
-            return throwNotImplementedYet();
-        }
+        abstract hasBinding(name: string): boolean;
         
-        public setMutableBinding(name: JSString, val: IJSValue, strict: boolean) {
-            throwNotImplementedYet();
-        }
+        abstract createMutableBinding(name: string, del?: boolean);
+        
+        abstract setMutableBinding(name: string, val: IJSValue, strict?: boolean);
+        
+        abstract getBindingValue(name: string, strict?: boolean): IJSValue;
+        
+        abstract deleteBinding(name: string);
+        
+        abstract implicitThisValue(): IJSValue;
         
         public getType(): JSSpecificationTypes {
-            return JSSpecificationTypes.environmentRecord;
+            return JSSpecificationTypes.lexicalEnvironment;
         }
         
-    }
-    
+    }    
 }

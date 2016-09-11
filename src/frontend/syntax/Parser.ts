@@ -22,10 +22,11 @@ module trl.frontend.syntax {
         private inLoopMutex: number[];
         private inSwitchMutex: number[];
         private inFunctionMutex: number;
+        private lastJSScopeContext: IJSContext[];
 
         private static defaultParserOptions: IParserOptions = {
             loc: false,
-            tolerateErrors: false
+            attachJSContextInfo: false
         };
 
         private static lexerOptions: lexical.ILexerOptions = {
@@ -42,7 +43,7 @@ module trl.frontend.syntax {
                 _.clone(options || {}),
                 Parser.defaultParserOptions
             );
-            this.nodeFactory = new NodeFactory(this.options.loc);
+            this.nodeFactory = new NodeFactory(this.options.loc, this.options.attachJSContextInfo);
             this.parseException = new ExceptionHandler();
 
             this.charStream = new lexical.CharacterStream(chars);
@@ -53,7 +54,8 @@ module trl.frontend.syntax {
             this.inLoopMutex = [0];
             this.inSwitchMutex = [0];
             this.inFunctionMutex = 0;
-        }       
+            this.lastJSScopeContext = [];
+        }
 
         ///////////////////////////////////////////
         // Context Utilities
@@ -101,7 +103,7 @@ module trl.frontend.syntax {
         private isOnSwitch(): boolean {
             return this.inSwitchMutex[this.inSwitchMutex.length - 1] > 0;
         }
-        
+
         //function mutex
         private beginFunction() {
             ++this.inFunctionMutex;
@@ -114,13 +116,70 @@ module trl.frontend.syntax {
         private isOnFunction(): boolean {
             return this.inFunctionMutex > 0;
         }
-        
+
         /////////////Context Utilities/////////////
 
+        ///////////////////////////////////////////
+        // js runtime information
+
+        public popJSScopeContext() {
+            if (!this.options.attachJSContextInfo) return;
+            utilities.assert(!_(this.lastJSScopeContext).isEmpty());
+            return this.lastJSScopeContext.pop();
+        }
+
+        public pushNewJSScopeContext() {
+            if (!this.options.attachJSContextInfo) return;
+            this.lastJSScopeContext.push({
+                strict: false,
+                functionDeclarations: [],
+                variableDeclarations: []
+            });
+        }
+
+        public getLastJSScopeContext(): IJSContext {
+            return _.last(this.lastJSScopeContext);
+        }
+
+        public identifyStrictMode(stms: IStatement[]) {
+            if (!this.options.attachJSContextInfo) return;
+            const jsScopeContext = this.getLastJSScopeContext();
+            utilities.assert(jsScopeContext);
+            const firstNode = _.first(stms);
+            if (firstNode) {
+                jsScopeContext.strict = firstNode.type === "ExpressionStatement"
+                    && (firstNode as IExpressionStatement).expression.type === "Literal"
+                    && ((firstNode as IExpressionStatement).expression as ILiteral).value === "use strict"
+            }
+        }
+
+        public newVariableDeclaration(variableDeclarators: IVariableDeclarator[], loc: lexical.ITokenSourceLocation): IVariableDeclaration {
+            const node = this.nodeFactory.createDeclarationVariable(variableDeclarators, loc);
+            if (this.options.attachJSContextInfo) {
+                const jsScopeContext = this.getLastJSScopeContext();
+                utilities.assert(jsScopeContext);
+                jsScopeContext.variableDeclarations.push(node);
+            }
+            return node;
+        }
+
+        public newFunction(asDeclaration: boolean, identifier: IIdentifier, args: IIdentifier[], block: IBlockStatement, loc: lexical.ITokenSourceLocation) {
+            const func = asDeclaration
+                ? this.nodeFactory.createDeclarationFunction(identifier, args, block, loc, this.popJSScopeContext())
+                : this.nodeFactory.createExpressionFunction(identifier, args, block, loc, this.popJSScopeContext());
+                
+            if (this.options.attachJSContextInfo) {
+                const jsScopeContext = this.getLastJSScopeContext();
+                utilities.assert(jsScopeContext);
+                jsScopeContext.functionDeclarations.push(func);
+            }
+            return func;
+        }
+        //////////js runtime information//////////
 
         ///////////////////////////////////////////
         // Parse Utilities
-        
+
         public getExceptions(): IExceptionHandler {
             return this.parseException;
         }
@@ -140,20 +199,13 @@ module trl.frontend.syntax {
                 this.parseException.addException(lexException.msg, lexException.pos.line, lexException.pos.column));
         }
 
-        private canTolerateError(): boolean {
-            const latestToken = this.lex.latestToken();
-            return this.options.tolerateErrors
-                && latestToken
-                && !(this.lex.isEof(latestToken) || this.lex.isError(latestToken));
-        }
-
         private parseStatementIfCanTolerate(stmts: IStatement[]): boolean {
             const stmt = this.parseStatement();
             if (stmt) {
                 stmts.push(stmt);
                 return true;
             }
-            return this.canTolerateError();
+            return false;
         }
 
         private trimOptionalSemicolon(): boolean {
@@ -205,7 +257,7 @@ module trl.frontend.syntax {
 
         private tokenIsInSameLine(token: lexical.IToken): boolean {
             return token.loc.end.line === this.lex.latestToken().loc.end.line;
-        }              
+        }
 
         ///////////Parse Utilities/////////////   
 
@@ -219,14 +271,18 @@ module trl.frontend.syntax {
                 this.delegateLexicalErrors();
                 return;
             }
+            this.pushNewJSScopeContext();
 
             const stmts = this.parseSourceElements();
             if (!stmts) return;
 
+            this.identifyStrictMode(stmts);
+
             if (this.lex.isEof(initialToken)) {
-                return this.nodeFactory.createProgram(stmts, this.trackPositionUnary(initialToken));
+                return this.nodeFactory.createProgram(stmts, this.trackPositionUnary(initialToken), this.popJSScopeContext());
             }
-            return this.nodeFactory.createProgram(stmts, this.trackPositionByToken(initialToken));
+
+            return this.nodeFactory.createProgram(stmts, this.trackPositionByToken(initialToken), this.popJSScopeContext());
         }
 
         public parseSourceElements(): IStatement[] {
@@ -405,7 +461,7 @@ module trl.frontend.syntax {
                     declarations = this.parseVariableDeclarators();
                     if (!declarations) return;
 
-                    initDecl = this.nodeFactory.createDeclarationVariable(declarations, this.trackPositionByToken(token));
+                    initDecl = this.newVariableDeclaration(declarations, this.trackPositionByToken(token));
                 }
                 else {
                     initExpr = this.parseExpression();
@@ -731,7 +787,7 @@ module trl.frontend.syntax {
             const variableDeclarators = this.parseVariableDeclarators();
             if (!this.trimOptionalSemicolon()) return;
 
-            return this.nodeFactory.createDeclarationVariable(variableDeclarators, this.trackPositionByToken(initialToken));
+            return this.newVariableDeclaration(variableDeclarators, this.trackPositionByToken(initialToken));
         }
 
         public parseExpressionStatement(): IStatement {
@@ -741,12 +797,12 @@ module trl.frontend.syntax {
 
             return this.nodeFactory.createStatementExpression(expr, this.trackPositionByToken(initialToken));
         }
-        
+
         ///////////Parse Statements////////////////    
-        
+
         ///////////////////////////////////////////
         // Declarations
-        
+
         private parseVariableDeclarators(): IVariableDeclarator[] {
             let variableDeclarator = this.parseVariableDeclarator();
             if (!variableDeclarator) return;
@@ -773,10 +829,10 @@ module trl.frontend.syntax {
             }
 
             return this.nodeFactory.createVariableDeclarator(identifier, expr, this.trackPositionByToken(initialToken));
-        }        
+        }
         ///////////////Declarations/////////////////            
-        
-        
+
+
         ///////////////////////////////////////////
         // Parse Expressions        
         public parseExpression(): IExpression {
@@ -1318,11 +1374,13 @@ module trl.frontend.syntax {
                 }
 
                 if (!this.expectPunctuation("{")) return;
-
+                
                 const functionBody = this.parseFunctionBody();
+                if(!functionBody) return;
+
                 if (!this.expectPunctuation("}")) return;
 
-                const functionExpr = this.nodeFactory.createExpressionFunction(null, args, functionBody, this.trackPositionByToken(token));
+                const functionExpr = this.newFunction(false, null, args, functionBody, this.trackPositionByToken(token));
                 return this.nodeFactory.createObjectProperty(propertyName, functionExpr, kind, this.trackPositionByToken(initialToken));
             }
             else {
@@ -1347,7 +1405,7 @@ module trl.frontend.syntax {
                 this.addException(token);
             }
         }
-        
+
         /////////////Parse Expressions///////////        
 
         ///////////////////////////////////////////
@@ -1387,28 +1445,26 @@ module trl.frontend.syntax {
 
             if (!this.expectPunctuation(")")) return;
 
-            const body = this.parseFunctionBody();
-            if (!body) return;
+            const block = this.parseFunctionBody();
+            if (!block) return;
 
-            if (asDeclaration) {
-                return this.nodeFactory.createDeclarationFunction(identifier, args, body, this.trackPositionByToken(initialToken));
-            } else {
-                return this.nodeFactory.createExpressionFunction(identifier, args, body, this.trackPositionByToken(initialToken));
-            }
+            return this.newFunction(asDeclaration, identifier, args, block, this.trackPositionByToken(initialToken));
         }
 
         public parseFunctionBody(): IBlockStatement {
             this.newSwitchScope();
             this.newIterationScope();
             this.beginFunction();
+            this.pushNewJSScopeContext();
+            
+            const block = this.parseBlockStatement();
 
-            const stmt = this.parseBlockStatement();
-
+            this.identifyStrictMode(block.body);
             this.restoreSwitchScope();
             this.restoreIterationScope();
             this.finishFunction();
-            
-            return stmt;
+
+            return block;
         }
 
         /////////////Parse Function////////////////

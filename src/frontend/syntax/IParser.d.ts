@@ -4,7 +4,7 @@ declare module trl.frontend.syntax {
     
     export interface IParserOptions {
         loc?: boolean;
-        tolerateErrors?: boolean;
+        attachJSContextInfo?: boolean;
     }    
     
     export interface IParser {

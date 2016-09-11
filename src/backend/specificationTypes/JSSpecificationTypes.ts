@@ -45,7 +45,7 @@ module trl.backend {
             }
         }
         else {
-            return (base as JSEnviromentRecord).getBindingValue(ref.getReferencedName(), ref.isStrictReference());
+            return (base as JSEnviromentRecord).getBindingValue(ref.getReferencedName().getValue(), ref.isStrictReference());
         }
     }
 
@@ -80,7 +80,7 @@ module trl.backend {
                 }
                 const prop = obj.objGetProperty(ref.getReferencedName());
                 if(prop instanceof JSPropertyDescriptor && (prop as JSPropertyDescriptor).isAccessorDescriptor()) {
-                    ((prop as JSPropertyDescriptor).jsset as JSCallableObject).objCall((base as IJSValue), [ref.getReferencedName()]);
+                    ((prop as JSPropertyDescriptor).jsset as JSCallableObject).objCall((base as IJSValue), new JSList([ref.getReferencedName()]));
                 }
                 else {
                     // Else, this is a request to create an own property on the transient object O
@@ -93,7 +93,7 @@ module trl.backend {
             }
         }
         else {
-            (base as JSEnviromentRecord).setMutableBinding(ref.getReferencedName(), val, ref.isStrictReference());
+            (base as JSEnviromentRecord).setMutableBinding(ref.getReferencedName().getValue(), val, ref.isStrictReference());
         }
     }
 
